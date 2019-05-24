@@ -1,0 +1,9 @@
+#!/bin/sh -f
+SCRIPT_DIR=`dirname $0`
+javac -cp "$COATJAVA/lib/clas/*:$SCRIPT_DIR/*:/u/home/bclary/CLAS12/phi_analysis/v3/v2/v1/target/*" -d . -sourcepath . runParameters.java
+java -cp ".:$COATJAVA/lib/clas/*:/u/home/bclary/CLAS12/phi_analysis/v3/v2/v1/target/*" runParameters $1
+
+#javac -cp "$COATJAVA/lib/clas/*:$SCRIPT_DIR/*" -d . -sourcepath . runParameters.java
+#java -cp ".:$COATJAVA/lib/clas/*:" runParameters $1
+
+
