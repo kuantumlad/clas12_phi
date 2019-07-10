@@ -1,3 +1,4 @@
+package org.jlab.detector.helicity;
 import java.io.*;
 import java.util.*;
 import org.jlab.io.hipo.*;
@@ -11,6 +12,11 @@ import org.jlab.groot.data.H1F;
 import org.jlab.groot.data.H2F;
 import org.jlab.groot.math.*;
 import org.jlab.groot.fitter.*;
+import org.jlab.jnp.hipo4.data.Bank;
+import org.jlab.jnp.hipo4.data.Event;
+import org.jlab.jnp.hipo4.data.SchemaFactory;
+import org.jlab.jnp.hipo4.io.HipoReader;
+
 
 public class filterFast{
 
@@ -19,7 +25,6 @@ public class filterFast{
     private static final double I_SQRT_PI = 1 / Math.sqrt(PI);
     public static final int MAX_X = 20; // max value to represent exp(x)
  
-
     public static void main(String[] input){
 
 	String dir_in = input[0];
@@ -49,10 +54,8 @@ public class filterFast{
 	int test_dof = 3;
 	double test_prob=pochisq(test_chi2, test_dof) ;///getChi2Prob(test_chi2,test_dof);
 
-	System.out.println(" >> test chi2 "  + Double.toString(test_chi2) + " dof " + Integer.toString(test_dof) + " test prob " + test_prob );
+	//System.out.println(" >> test chi2 "  + Double.toString(test_chi2) + " dof " + Integer.toString(test_dof) + " test prob " + test_prob );
 	
-	
-
 	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	// Histograms for Kinematics
 	
@@ -245,23 +248,23 @@ public class filterFast{
 	// Run information at 
 	// -- /work/clas12/clas12/data/trains/v2/skim4_inclusive/skim4_
 	Vector<Integer> run_list = new Vector<Integer>();
+	//run_list.add(5036);
+	run_list.add(5038);
 	/*run_list.add(5000);
 	run_list.add(5001);
 	run_list.add(5030);
-	run_list.add(5036);
-	run_list.add(5038);
 	run_list.add(5046);
 	run_list.add(5117);*/
 	// outbending data below
 	//run_list.add(5532);
 	//run_list.add(5533);
-	run_list.add(5534);
+	//run_list.add(5534);
 	//run_list.add(5535);
 	//run_list.add(5536);
 	//run_list.add(5537);
 	//run_list.add(5538);
 
-	String dataType="DATA";
+	String dataType="data";
 
 
 	Vector< Vector<LorentzVector> > final_event = new Vector< Vector<LorentzVector > >();
@@ -274,16 +277,25 @@ public class filterFast{
 	else{
 	    file_counter_limit = run_list.size();
 	}
+	
+	// 1!!!1 initialize the helicity sequence:
+	List<String> filenames=new ArrayList<>();
+	filenames.add(dir_in + Integer.toString(run_list.get(0)) + ".hipo");
+	HelicitySequenceDelayed seq = HelicityAnalysis.readSequence(filenames);
+	
+	seq.setVerbosity(1);
+	
 
 	while( file_counter < file_counter_limit ){
 	    
 	    System.out.println("Opening File ");
 	    
 	    String file_in=null;
-	    if (dataType != "MC" ){
+	    if (dataType != "MC" ){		
 		file_in = dir_in + Integer.toString(run_list.get(file_counter)) + ".hipo";
+		System.out.println(" PROCESSING DATA FOR FILE " + file_in );
 	    }
-	    else{
+	    else if ( dataType == "MC" ){
 		file_in = dir_in + Integer.toString(file_counter) + ".txt.hipo";
 	    }
 
@@ -294,34 +306,71 @@ public class filterFast{
 		continue;
 	    }
 
-	    if( !fin_temp.exists() ) continue;
+	    if( !fin_temp.exists() ) { file_counter++; continue;}
 	    //if(f.exists() && !f.isDirectory())
+
+
+
 
 	    System.out.println(" Processing File " + file_in );
 	    
 	    HipoDataSource hiporeader = new HipoDataSource();
-	    hiporeader.open(new File(file_in) );
-	    DataEvent event = null;
+	    hiporeader.open(file_in);
 
-	    int max_event = 10000;/// hiporeader.getSize();
+	    HipoReader hiporeader2 = new HipoReader();
+            hiporeader2.setTags(0);
+	    hiporeader2.open(file_in);
+
+
+	    //DataEvent event = null;
+            SchemaFactory schema = hiporeader2.getSchemaFactory();
+
+	    int max_event =  hiporeader.getSize();
 	    int num_ev = 0;
 	    System.out.println(" PROCESSING " + Integer.toString(max_event) + " EVENTS " ) ;
 
-	    while( num_ev < max_event ){
-
+	    int counter = 0;
+	
+	    while(hiporeader.hasEvent()==true){// num_ev < max_event ){
+	    //while(hiporeader.hasNext()){
 		//System.out.println(" event " + Integer.toString(num_ev) );
 		//while( hiporeader.hasEvent()){
-		event = (DataEvent)hiporeader.gotoEvent(num_ev);
+		//event = (DataEvent)hiporeader.gEvent(num_ev);
+		//event = (DataEvent)hiporeader.getHipoEvent();
+                Event event2=new Event();
+		hiporeader2.nextEvent(event2);
+
+		DataEvent  event = hiporeader.getNextEvent();
+		//System.out.println("EVENT # " + counter);
+		//event.show();
+
+		counter++;
 		//DataEvent event = (DataEvent)hiporeader.getNextEvent();
 		num_ev++;
 
-		boolean runConfig_pres = event.hasBank("RUN::config");
-		boolean recBank_pres  = event.hasBank("REC::Particle");
+		boolean runConfig_pres = event.hasBank("RUN::config");		
+		if( runConfig_pres ){
+		    
+		    Bank rcfgBank=new Bank(schema.getSchema("RUN::config"));
+		    event2.read(rcfgBank);
+		    if (rcfgBank.getRows()<=0) continue;
+		    final int  evno = rcfgBank.getInt("event",0);
+		    final long timestamp = rcfgBank.getLong("timestamp",0);
+		    HelicityBit predicted = seq.findPrediction(timestamp);
+		    if (predicted==null || predicted==HelicityBit.UDF){
+			System.out.println(String.format("Bad Helicity: event=%d time=%d helicity=%s",evno,timestamp,predicted));
+		    }
+		    else {
+			// proceed with physics analysis:
+		    }
+		}
+
+		boolean recBank_pres  =  event.hasBank("REC::Particle");
 		boolean rawScalerBank_pres = event.hasBank("RAW::scaler");
 		boolean eventBank_pres = event.hasBank("REC::Event");
-		boolean configBank_pres = event.hasBank("RUN::config");
-		boolean recScint_pres = event.hasBank("REC::Scintillator");
-		boolean recTrack_pres = event.hasBank("REC::Track");
+		//boolean configBank_pres = event.hasBank("RUN::config");
+		boolean recScint_pres =  event.hasBank("REC::Scintillator");
+		boolean recTrack_pres =  event.hasBank("REC::Track");
 		boolean mcBank_pres = event.hasBank("MC::Particle");
 
 		int percent_complete = (int)Math.floor((double)num_ev/(double)max_event * 100.0);
@@ -339,11 +388,16 @@ public class filterFast{
 		LorentzVector lv_kp_rec = new LorentzVector(0,0,0,0);
 		LorentzVector lv_km_rec = new LorentzVector(0,0,0,0);
 
-
+		//event.show();
 
 		if( eventBank_pres ){
 		    DataBank eventBank = event.getBank("REC::Event");
-		    int helicity = eventBank.getInt("Helic",0);
+		    int helicity = eventBank.getInt("helicity",0);
+		    if ( event.hasBank("HEL::online") ) event.show();
+		    //System.out.println(helicity);
+
+
+		    //if( event.hasBank("HEL::flip") ) System.out.println(" hel bank " );
 		    
 
 		    if( recBank_pres && recScint_pres && recTrack_pres ){
@@ -394,7 +448,9 @@ public class filterFast{
 				float rec_py = recbank.getFloat("py",rec_i);
 				float rec_pz = recbank.getFloat("pz",rec_i);
 				float rec_vz = recbank.getFloat("vz",rec_i);
+
 				
+
 				int rec_status = recbank.getInt("status",rec_i);
 				float beta_clas12 = recbank.getFloat("beta",rec_i);
 				int scint_sector = -1;
@@ -499,7 +555,7 @@ public class filterFast{
 			    }					
 			}
 			
-			System.out.println(" >> reduced chi2 values are " + pr_chi2 + " " + kp_chi2 + " " + km_chi2 );
+			//System.out.println(" >> reduced chi2 values are " + pr_chi2 + " " + kp_chi2 + " " + km_chi2 );
 
  			if( pr_chi2 > 0 ){
 			    h_pr_chi2_before.fill(pr_chi2);
@@ -924,12 +980,13 @@ public class filterFast{
 	int s =0;
 	for( H2F h_temp :  h_pos_betap ){
 	    c_temp.cd(s);
-	    
+	    c_temp.getPad(s).getAxisZ().setLog(true);	    
 	    s++;
 	    c_temp.draw(h_temp);	    
 	    c_temp.draw(betap_pr,"same");
 	    c_temp.draw(betap_kp,"same");
 	    c_temp.draw(betap_pip,"same");
+
 	}
 	c_temp.save("/work/clas12/bclary/CLAS12/phi_analysis/pid/h_pos_betap.png");
 
@@ -939,10 +996,12 @@ public class filterFast{
 	s=0;
 	for( H2F h_temp :  h_neg_betap ){
 	    c_temp2.cd(s);
-	    s++;
+	    c_temp2.getPad(s).getAxisZ().setLog(true);
 	    c_temp2.draw(h_temp);
 	    c_temp2.draw(betap_km,"same");
 	    c_temp2.draw(betap_pim,"same");
+	    s++;
+
 	}
 	c_temp2.save("/work/clas12/bclary/CLAS12/phi_analysis/pid/h_neg_betap.png");
 
@@ -1002,10 +1061,13 @@ public class filterFast{
 	c_part.cd(25);
 	c_part.draw(h_prelim_phi);
 	c_part.cd(26);
+	c_part.getPad(26).getAxisZ().setLog(true); 
 	c_part.draw(h_pr_final_betap);
 	c_part.cd(27);
+	c_part.getPad(27).getAxisZ().setLog(true); 
 	c_part.draw(h_kp_final_betap);
 	c_part.cd(28);
+	c_part.getPad(28).getAxisZ().setLog(true); 
 	c_part.draw(h_km_final_betap);
 	c_part.save("/work/clas12/bclary/CLAS12/phi_analysis/pid/all_particle_kin.png");
 
@@ -1066,10 +1128,13 @@ public class filterFast{
 	c_part_final.cd(25);
 	c_part_final.draw(h_prelim_phi);
 	c_part_final.cd(26);
+	c_part.getPad(26).getAxisZ().setLog(true); 
 	c_part_final.draw(h_pr_final_betap);
 	c_part_final.cd(27);
+	c_part.getPad(27).getAxisZ().setLog(true); 
 	c_part_final.draw(h_kp_final_betap);
 	c_part_final.cd(28);
+	c_part.getPad(28).getAxisZ().setLog(true); 
 	c_part_final.draw(h_km_final_betap);
 	c_part_final.save("/work/clas12/bclary/CLAS12/phi_analysis/pid/all_particle_kin_final.png");
 
@@ -1305,7 +1370,7 @@ public class filterFast{
 	}
 	*/
 	double prob = pochisq(chi2,dof);
-	System.out.println(" PROB FOR " + Double.toString(chi2)  + "  and DOF  " + Integer.toString(dof)  + " IS  " + Double.toString(prob) );
+	//System.out.println(" PROB FOR " + Double.toString(chi2)  + "  and DOF  " + Integer.toString(dof)  + " IS  " + Double.toString(prob) );
 	return prob;
     }
 
@@ -1404,5 +1469,7 @@ public class filterFast{
     public static double ex(double x) {
         return (x < -MAX_X) ? 0.0 : Math.exp(x);
     }
+
+    
 
 }

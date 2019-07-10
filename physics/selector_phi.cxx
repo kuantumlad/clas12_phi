@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <functional>
 #include <TCutG.h>
+#include <TProfile.h>
+
 using namespace std;
 
 #include "Math/GenVector/PxPyPzE4D.h"
@@ -47,7 +49,7 @@ using namespace ROOT::Math;
 double Ebeam = 10.6;//594;
 int process_Events = -1;            // process all events
 //int process_Events = 500000;     // process given number of events
-
+bool print_out_event_info = false;
 
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////
 /// /////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,6 +59,7 @@ int process_Events = -1;            // process all events
 Float_t Pival = 3.14159265359;
 
 Float_t m_e = 0.000511;
+Float_t mass_el = m_e;
 Float_t m_p = 0.93827;
 Float_t m_n = 0.9396;
 Float_t m_pip = 0.1396;
@@ -70,6 +73,7 @@ Float_t c = 299792458;
 
 int helicity;
 double fcup;
+vector<int > *sectorE = 0;
 vector<double> *p4_ele_px = 0;
 vector<double> *p4_ele_py = 0;
 vector<double> *p4_ele_pz = 0;
@@ -105,10 +109,22 @@ vector<double> *p4_phot_E = 0;
 vector<double> *prot_beta_final = 0;
 vector<double> *Kp_beta_final = 0;
 vector<double> *Km_beta_final = 0;
+vector<int> *eventNumber = 0;
 vector<double> *el_sector = 0;
 vector<double> *prot_sector = 0;
 vector<double> *Kp_sector = 0;
 vector<double> *Km_sector = 0;
+
+///////////////////////////////
+// mc tree variables
+vector<int> *p4_mc_pid = 0;
+vector<double> *p4_mc_px  = 0;
+vector<double> *p4_mc_py = 0;
+vector<double> *p4_mc_pz = 0;
+vector<double> *p4_mc_vx = 0;
+vector<double> *p4_mc_vy = 0;
+vector<double> *p4_mc_vz = 0;
+
 
 /// varibales for particles:
 
@@ -122,6 +138,11 @@ TLorentzVector pim[BUFFER];
 TLorentzVector Kp[BUFFER]; 
 TLorentzVector Km[BUFFER]; 
 TLorentzVector phot[BUFFER];
+
+TLorentzVector mc_ele[BUFFER];
+TLorentzVector mc_prot[BUFFER];
+TLorentzVector mc_kp[BUFFER];
+TLorentzVector mc_km[BUFFER];
 
 
 //added for beta vs p
@@ -196,7 +217,7 @@ char name[200];
 char title[200];
 
 
-int selector_phi( const char* inFile, const char* outputfile ){
+int selector_phi( const char* inFile, const char* outputfile, int run, std::string data_type = "DATA" ){
 
   Char_t *inTree="out_tree";
   cout << "Initalize the input tree ... " << endl;
@@ -205,7 +226,7 @@ int selector_phi( const char* inFile, const char* outputfile ){
   ///  get input file:
   /// ///////////////////////////////////////////////////////////////////////////
 
-   TFile *f; 
+  TFile *f; 
   Char_t tmpstr[80];
   Double_t fraction;
 
@@ -218,6 +239,9 @@ int selector_phi( const char* inFile, const char* outputfile ){
   }
 
   cout << "Reading from File: " << inFile << endl;
+
+ std::string analysis_sim = "SIM";
+
 
   TTree *anaTree=(TTree *) f->Get(inTree);
 
@@ -232,7 +256,7 @@ int selector_phi( const char* inFile, const char* outputfile ){
   ///  get branches from input file:
   /// ///////////////////////////////////////////////////////////////////////////// 
     
-  anaTree->SetBranchAddress("helicity", &helicity);
+  /*  anaTree->SetBranchAddress("helicity", &helicity);
   anaTree->SetBranchAddress("fcup", &fcup);
   anaTree->SetBranchAddress("p4_ele_px", &p4_ele_px);
   anaTree->SetBranchAddress("p4_ele_py", &p4_ele_py);
@@ -266,6 +290,53 @@ int selector_phi( const char* inFile, const char* outputfile ){
   anaTree->SetBranchAddress("p4_phot_py", &p4_phot_py);
   anaTree->SetBranchAddress("p4_phot_pz", &p4_phot_pz);
   anaTree->SetBranchAddress("p4_phot_E", &p4_phot_E);  
+  */
+  anaTree->SetBranchAddress("helicity", &helicity);
+  anaTree->SetBranchAddress("fcup", &fcup);
+  anaTree->SetBranchAddress("sectorE",&sectorE);
+  anaTree->SetBranchAddress("eventNumber",&eventNumber);
+  anaTree->SetBranchAddress("p4_ele_px", &p4_ele_px);
+  anaTree->SetBranchAddress("p4_ele_py", &p4_ele_py);
+  anaTree->SetBranchAddress("p4_ele_pz", &p4_ele_pz);
+  anaTree->SetBranchAddress("p4_ele_E", &p4_ele_E);
+  anaTree->SetBranchAddress("p4_prot_px", &p4_prot_px);
+  anaTree->SetBranchAddress("p4_prot_py", &p4_prot_py);
+  anaTree->SetBranchAddress("p4_prot_pz", &p4_prot_pz);
+  anaTree->SetBranchAddress("p4_prot_E", &p4_prot_E);
+  anaTree->SetBranchAddress("p4_neutr_px", &p4_neutr_px);
+  anaTree->SetBranchAddress("p4_neutr_py", &p4_neutr_py);
+  anaTree->SetBranchAddress("p4_neutr_pz", &p4_neutr_pz);
+  anaTree->SetBranchAddress("p4_neutr_E", &p4_neutr_E);
+  anaTree->SetBranchAddress("p4_pip_px", &p4_pip_px);
+  anaTree->SetBranchAddress("p4_pip_py", &p4_pip_py);
+  anaTree->SetBranchAddress("p4_pip_pz", &p4_pip_pz);
+  anaTree->SetBranchAddress("p4_pip_E", &p4_pip_E);
+  anaTree->SetBranchAddress("p4_pim_px", &p4_pim_px);
+  anaTree->SetBranchAddress("p4_pim_py", &p4_pim_py);
+  anaTree->SetBranchAddress("p4_pim_pz", &p4_pim_pz);
+  anaTree->SetBranchAddress("p4_pim_E", &p4_pim_E);
+  anaTree->SetBranchAddress("p4_Kp_px", &p4_Kp_px);
+  anaTree->SetBranchAddress("p4_Kp_py", &p4_Kp_py);
+  anaTree->SetBranchAddress("p4_Kp_pz", &p4_Kp_pz);
+  anaTree->SetBranchAddress("p4_Kp_E", &p4_Kp_E);
+  anaTree->SetBranchAddress("p4_Km_px", &p4_Km_px);
+  anaTree->SetBranchAddress("p4_Km_py", &p4_Km_py);
+  anaTree->SetBranchAddress("p4_Km_pz", &p4_Km_pz);
+  anaTree->SetBranchAddress("p4_Km_E", &p4_Km_E);
+  anaTree->SetBranchAddress("p4_phot_px", &p4_phot_px);
+  anaTree->SetBranchAddress("p4_phot_py", &p4_phot_py);
+  anaTree->SetBranchAddress("p4_phot_pz", &p4_phot_pz);
+  anaTree->SetBranchAddress("p4_phot_E", &p4_phot_E);  
+  if( data_type == analysis_sim ){    
+    std::cout << " SETTING MC VARIABLES " << std::endl;
+    anaTree->SetBranchAddress("gen_pid",&p4_mc_pid);
+    anaTree->SetBranchAddress("gen_px",&p4_mc_px);
+    anaTree->SetBranchAddress("gen_py",&p4_mc_py);
+    anaTree->SetBranchAddress("gen_pz",&p4_mc_pz);
+    anaTree->SetBranchAddress("gen_vx",&p4_mc_vx);
+    anaTree->SetBranchAddress("gen_vy",&p4_mc_vy);
+    anaTree->SetBranchAddress("gen_vz",&p4_mc_vz);
+  }
 
   out = new TFile(outputfile, "RECREATE");
 
@@ -534,7 +605,18 @@ int selector_phi( const char* inFile, const char* outputfile ){
 
   TH1F *hist_tmin_final;
   TH1F *hist_phi_cos_theta_H_final;
- 
+
+  TH2F *hist_q2_vs_p_kp;
+  TH2F *hist_q2_vs_p_km;
+
+  TH2F *hist_t_vs_p_kp;
+  TH2F *hist_t_vs_p_km;
+
+  TH2F *hist_tmin_vs_q2;
+  TH2F *hist_tmin_vs_xb;
+  TH1F *hist_xb_bins;
+
+  
   hist_W = new TH1F("W", "W all sectors", 700, 0.5, Ebeam-2);   
   hist_W->GetXaxis()->SetTitle("W /GeV");
   hist_W->GetYaxis()->SetTitle("counts");
@@ -600,10 +682,24 @@ int selector_phi( const char* inFile, const char* outputfile ){
   hist_tmin_final->GetXaxis()->SetTitle("t_{min} (GeV^{2})");  
   hist_tmin_final->GetYaxis()->SetTitle("counts");
 
-  hist_phi_cos_theta_H_final = new TH1F("cos_theta_H","cos(#theta_{H})",70, -1.0, 5.0);
+  hist_phi_cos_theta_H_final = new TH1F("cos_theta_H","cos(#theta_{H})",10, -1.0, 1.0);
   hist_phi_cos_theta_H_final->GetXaxis()->SetTitle("cos(#theta_{H})");  
   hist_phi_cos_theta_H_final->GetYaxis()->SetTitle("counts");
 
+  hist_q2_vs_p_kp = new TH2F("hist_q2_vs_p_kp","hist_q2_vs_p_kp",100, 0.0, Ebeam-2, 100, 0.0, Ebeam+2);
+  hist_q2_vs_p_km = new TH2F("hist_q2_vs_p_km","hist_q2_vs_p_km",100, 0.0, Ebeam-2, 100, 0.0, Ebeam+2);
+
+  hist_t_vs_p_kp = new TH2F("hist_t_vs_p_kp","hist_t_vs_p_kp",100, 0.0, Ebeam-2, 100, 0.0, 5.0);
+  hist_t_vs_p_km = new TH2F("hist_t_vs_p_km","hist_t_vs_p_km",100, 0.0, Ebeam-2, 100, 0.0, 5.0);
+
+  hist_tmin_vs_q2 = new TH2F("hist_tmin_vs_q2","hist_tmin_vs_q2",50, 0.0, 5.0, 50, 0.0, Ebeam+1);
+  hist_tmin_vs_xb = new TH2F("hist_tmin_vs_xb","hist_tmin_vs_xb",50, 0.0, 1.0, 50, 0.0, 5.0);
+  hist_xb_bins = new TH1F("hist_xb_bins","hist_xb_bins",10,0.0, 1.0);
+  std::vector<TH2F*> hist_tmin_vs_q2_per_xb_bin;
+  for( int xb_bb = 0; xb_bb < 10; xb_bb++ ){
+    hist_tmin_vs_q2_per_xb_bin.push_back( new TH2F(Form("hist_tmin_vs_q2_xb_bin%d",xb_bb),Form("hist_tmin_vs_q2_xb_bin%d",xb_bb), 20, 0.0, 12.0, 20, 0.0, 5.0) );
+  }
+  
   // end phase space plots
 
 
@@ -692,6 +788,10 @@ int selector_phi( const char* inFile, const char* outputfile ){
   TH2D *h2_epkpkmX_epkmX;
 
   TH2D *h2_kpkm_pkm;
+  TH2F *h2_pel_kpkm;
+  TH2F *h2_pphi_kpkm;
+  TH2F *h2_pphi_kpkm_kaonPasPIP;
+
 
   h2_epX_eX = new TH2D("h2_epX_eX","h2_epX_eX",100,-6.5,4.0, 100, 3.5, 12.0);
   h2_epkpX_eX = new TH2D("h2_epkpX_eX","h2_epkpX_eX",100,-6.5, 3.0, 100, 3.5, 12.0);
@@ -739,6 +839,333 @@ int selector_phi( const char* inFile, const char* outputfile ){
   h_inv_kpkm_final = new TH1D("h_inv_kpkm_final","h_inv_kpkm_final",75,0.8,1.5); 
   h_inv_kpkm_final_ekpkm = new TH1D("h_inv_kpkm_final_ekpkm","h_inv_kpkm_final_ekpkm",75,0.8,1.5); 
 
+  h2_pel_kpkm = new TH2F("h2_pel_kpkm","h2_pel_kpkm",50, 0.0, Ebeam+1.0, 50, 0.8, 1.8);
+  h2_pphi_kpkm = new TH2F("h2_pphi_kpkm","h2_pphi_kpkm",50, 0.0, 7.0, 50, 0.8, 1.5);
+  h2_pphi_kpkm_kaonPasPIP = new TH2F("h2_pphi_kpkm_kaonPasPIP","h2_pphi_kpkm_kaonPasPIP",50, 0.0, 7.0, 50, 0.2, 1.3);
+
+  out->mkdir("Acceptance");
+  out->cd("Acceptance");
+
+  TH1D *h_el_theta_rec;
+  TH1D *h_el_theta_gen;
+  TH1D *h_pr_theta_gen;
+  TH1D *h_kp_theta_gen;
+  TH1D *h_km_theta_gen;
+  
+  TH1D *h_el_theta_accp;
+  TH1D *h_pr_theta_accp;
+  TH1D *h_kp_theta_accp;
+  TH1D *h_km_theta_accp;
+
+  TH1D *h_el_theta_epX_rec;
+  TH1D *h_el_theta_epkpX_rec;
+  TH1D *h_el_theta_epkmX_rec;
+  TH1D *h_el_theta_epkpkmX_rec;
+
+  TH1D *h_pr_theta_epX_rec;
+  TH1D *h_pr_theta_epkpX_rec;
+  TH1D *h_pr_theta_epkmX_rec;
+  TH1D *h_pr_theta_epkpkmX_rec;
+
+  TH1D *h_kp_theta_epX_rec;
+  TH1D *h_kp_theta_ekpX_rec;
+  TH1D *h_kp_theta_epkpX_rec;
+  TH1D *h_kp_theta_epkmX_rec;
+  TH1D *h_kp_theta_epkpkmX_rec;
+
+  TH1D *h_km_theta_epX_rec;
+  TH1D *h_km_theta_ekmX_rec;
+  TH1D *h_km_theta_epkpX_rec;
+  TH1D *h_km_theta_epkmX_rec;
+  TH1D *h_km_theta_epkpkmX_rec;
+
+  TH2F *h_pr_theta_phi_epX_rec;
+
+  TH1D *h_q2_gen;
+  TH1D *h_t_gen;
+  TH1D *h_xb_gen;
+  TH1D *h_phi_gen;
+  TH1D *h_nu_gen;
+  TH1D *h_y_gen;
+  TH1D *h_gg_angle_gen;
+  TH1D *h_theta_gen;
+  TH1D *h_tmin_gen;
+  TH1D *h_tmax_gen;
+
+  h_q2_gen = new TH1D("h_q2_gen","h_q2_gen", 50, 0.0, Ebeam);
+  h_t_gen = new TH1D("h_t_gen","h_t_gen", 50, 0.0, 5.0);
+  h_xb_gen = new TH1D("h_xb_gen","h_xb_gen", 50, 0.0, 1.0);
+  h_phi_gen = new TH1D("h_phi_gen","h_phi_gen", 360, 0.0, 360.0);
+  h_nu_gen = new TH1D("h_nu_gen","h_nu_gen",100, 0.0, 4.0);
+  h_y_gen = new TH1D("h_y_gen","h_y_gen",100, 0.0, 1.5);
+  h_gg_angle_gen = new TH1D("h_gg_angle_gen","h_gg_angle_gen",100, 0.0, 80.0);
+  h_theta_gen = new TH1D("h_theta_gen","h_theta_gen",100, 0.0, 80.0);
+  h_tmin_gen = new TH1D("h_tmin_gen","h_tmin_gen",100, 0.0, 10.0);
+  h_tmax_gen = new TH1D("h_tmax_gen","h_tmax_gen",100, 0.0, 10.0);
+
+  TH1D *h_q2_eX_rec;
+  TH1D *h_q2_epX_rec;
+  TH1D *h_q2_epkpX_rec;
+  TH1D *h_q2_epkmX_rec;
+  TH1D *h_q2_epkpkmX_rec;
+
+  TH2D *h_q2_eX_phi_rec;
+  TH2D *h_q2_eX_phi_gen;
+  TH2D *h_q2_eX_phi_accp;
+  h_q2_eX_phi_rec = new TH2D("h_q2_eX_phi_rec","h_q2_eX_phi_rec", 72, -180.0, 180.0, 50, 0.0, Ebeam );
+  h_q2_eX_phi_gen = new TH2D("h_q2_eX_phi_gen","h_q2_eX_phi_gen", 72, -180.0, 180.0, 50, 0.0, Ebeam );
+  h_q2_eX_phi_accp = new TH2D("h_q2_eX_phi_accp","h_q2_eX_phi_accp", 72, -180.0, 180.0, 50, 0.0, Ebeam );
+  
+  TH2D *h_theta_eX_phi_rec;
+  TH2D *h_theta_eX_phi_gen;
+  TH2D *h_theta_eX_phi_accp;
+  h_theta_eX_phi_rec = new TH2D("h_theta_eX_phi_rec","h_theta_eX_phi_rec", 72, -180.0, 180.0, 50, 0.0, 80 );
+  h_theta_eX_phi_gen = new TH2D("h_theta_eX_phi_gen","h_theta_eX_phi_gen", 72, -180.0, 180.0, 50, 0.0, 80 );
+  h_theta_eX_phi_accp = new TH2D("h_theta_eX_phi_accp","h_theta_eX_phi_accp", 72, -180.0, 180.0, 50, 0.0, 80 );
+
+  TH2D *h_pr_theta_phi_rec;
+  TH2D *h_pr_theta_phi_gen;
+  TH2D *h_pr_theta_phi_accp;
+  h_pr_theta_phi_rec = new TH2D("h_pr_theta_phi_rec","h_pr_theta_phi_rec",72, -180.0, 180.0, 50, 0.0, 60.0);
+  h_pr_theta_phi_gen = new TH2D("h_pr_theta_phi_gen","h_pr_theta_phi_gen",72, -180.0, 180.0, 50, 0.0, 60.0);
+  h_pr_theta_phi_accp = new TH2D("h_pr_theta_phi_accp","h_pr_theta_phi_acco",72, -180.0, 180.0, 50, 0.0, 60.0);
+
+  TH2D *h_kp_theta_phi_rec;
+  TH2D *h_kp_theta_phi_gen;
+  TH2D *h_kp_theta_phi_accp;
+  h_kp_theta_phi_rec = new TH2D("h_kp_theta_phi_rec","h_kp_theta_phi_rec",72, -180.0, 180.0, 50, 0.0, 30.0);
+  h_kp_theta_phi_gen = new TH2D("h_kp_theta_phi_gen","h_kp_theta_phi_gen",72, -180.0, 180.0, 50, 0.0, 30.0);
+  h_kp_theta_phi_accp = new TH2D("h_kp_theta_phi_accp","h_kp_theta_phi_acco",72, -180.0, 180.0, 50, 0.0, 30.0);
+
+  TH2D *h_km_theta_phi_rec;
+  TH2D *h_km_theta_phi_gen;
+  TH2D *h_km_theta_phi_accp;
+  h_km_theta_phi_rec = new TH2D("h_km_theta_phi_rec","h_km_theta_phi_rec",72, -180.0, 180.0, 50, 0.0, 30.0);
+  h_km_theta_phi_gen = new TH2D("h_km_theta_phi_gen","h_km_theta_phi_gen",72, -180.0, 180.0, 50, 0.0, 30.0);
+  h_km_theta_phi_accp = new TH2D("h_km_theta_phi_accp","h_km_theta_phi_acco",72, -180.0, 180.0, 50, 0.0, 30.0);
+    
+  TH1D *h_xb_eX_rec;
+  TH1D *h_xb_epkpkmX_rec;
+
+  TH1D *h_t_eX_rec;
+  TH1D *h_t_epX_rec;
+  TH1D *h_t_epkpX_rec;
+  TH1D *h_t_epkmX_rec;
+  TH1D *h_t_epkpkmX_rec;
+
+  TH1D *h_t_epkpX_accp;
+  TH1D *h_t_epkmX_accp;
+  TH1D *h_t_epkpkmX_accp;
+  TH1D *h_t_epkp_accp;
+  TH1D *h_t_epkm_accp;
+
+  TH1D *h_costheta_epkpkm_rec;
+  TH1D *h_costheta_epkpkm_gen;
+  TH1D *h_costheta_epkpkm_accp;
+
+  TH1D *h_q2_eX_accp;
+  TH1D *h_xb_eX_accp;
+  TH1D *h_t_epX_accp;
+
+  TH1D *h_q2_epkpkm_accp;
+  TH1D *h_xb_epkpkm_accp;
+  TH1D *h_t_epkpkm_accp;
+  
+  h_el_theta_gen = new TH1D("h_el_theta_gen","h_el_theta_gen",50, 0.0, 80.0);
+  h_pr_theta_gen  = new TH1D("h_pr_theta_gen","h_pr_theta_gen",50, 0.0, 80.0);
+  h_kp_theta_gen  = new TH1D("h_kp_theta_gen","h_kp_theta_gen",50, 0.0, 80.0);
+  h_km_theta_gen  = new TH1D("h_km_theta_gen","h_km_theta_gen",50, 0.0, 80.0);
+
+  h_el_theta_accp  = new TH1D("h_el_theta_accp","h_el_theta_accp",50, 0.0, 80.0);
+  h_pr_theta_accp  = new TH1D("h_pr_theta_accp","h_pr_theta_accp",50, 0.0, 80.0);
+  h_kp_theta_accp  = new TH1D("h_kp_theta_accp","h_kp_theta_accp",50, 0.0, 80.0);
+  h_km_theta_accp  = new TH1D("h_km_theta_accp","h_km_theta_accp",50, 0.0, 80.0);
+  
+  h_el_theta_rec = new TH1D("h_el_theta_rec","h_el_theta_rec",50, 0.0, 80.0);
+  h_el_theta_epX_rec = new TH1D("h_el_theta_epX_rec","h_el_theta_epX_rec",50, 0.0, 80.0);
+  h_el_theta_epkpX_rec = new TH1D("h_el_theta_epkpX_rec","h_el_theta_epkpX_rec",50, 0.0, 80.0);
+  h_el_theta_epkmX_rec = new TH1D("h_el_theta_epkmX_rec","h_el_theta_epkmX_rec",50, 0.0, 80.0);
+  h_el_theta_epkpkmX_rec = new TH1D("h_el_theta_epkpkmX_rec","h_el_theta_epkpkmX_rec",50, 0.0, 80.0);
+
+  h_pr_theta_epX_rec = new TH1D("h_pr_theta_epX_rec","h_pr_theta_epX_rec",50, 0.0, 80.0);
+  h_pr_theta_epkpX_rec = new TH1D("h_pr_theta_epkpX_rec","h_pr_theta_epkpX_rec",50, 0.0, 80.0);
+  h_pr_theta_epkmX_rec = new TH1D("h_pr_theta_epkmX_rec","h_pr_theta_epkmX_rec",50, 0.0, 80.0);
+  h_pr_theta_epkpkmX_rec = new TH1D("h_pr_theta_epkpkmX_rec","h_pr_theta_epkpkmX_rec",50, 0.0, 80.0);
+
+  h_kp_theta_epX_rec = new TH1D("h_kp_theta_epX_rec","h_kp_theta_epX_rec",50, 0.0, 80.0);
+  h_kp_theta_ekpX_rec = new TH1D("h_kp_theta_ekpX_rec","h_kp_theta_ekpX_rec",50, 0.0, 80.0);
+  h_kp_theta_epkpX_rec = new TH1D("h_kp_theta_epkpX_rec","h_kp_theta_epkpX_rec",50, 0.0, 80.0);
+  h_kp_theta_epkmX_rec = new TH1D("h_kp_theta_epkmX_rec","h_kp_theta_epkmX_rec",50, 0.0, 80.0);
+  h_kp_theta_epkpkmX_rec = new TH1D("h_kp_theta_epkpkmX_rec","h_kp_theta_epkpkmX_rec",50, 0.0, 80.0);
+
+  h_km_theta_epX_rec = new TH1D("h_el_theta_epX_rec","h_el_theta_epX_rec",50, 0.0, 80.0);
+  h_km_theta_ekmX_rec = new TH1D("h_km_theta_ekmX_rec","h_km_theta_ekmX_rec",50, 0.0, 80.0);
+  h_km_theta_epkpX_rec = new TH1D("h_el_theta_epkpX_rec","h_el_theta_epkpX_rec",50, 0.0, 80.0);
+  h_km_theta_epkmX_rec = new TH1D("h_el_theta_epkmX_rec","h_el_theta_epkmX_rec",50, 0.0, 80.0);
+  h_km_theta_epkpkmX_rec = new TH1D("h_el_theta_epkpkmX_rec","h_el_theta_epkpkmX_rec",50, 0.0, 80.0);
+
+  h_q2_eX_rec = new TH1D("h_q2_eX_rec","h_q2_eX_rec",50, 0.0, Ebeam);
+  h_q2_epX_rec = new TH1D("h_q2_epX_rec","h_q2_epX_rec",50, 0.0, Ebeam);
+  h_q2_epkpX_rec = new TH1D("h_q2_epkpX_rec","h_q2_epkpX_rec",50, 0.0, Ebeam);
+  h_q2_epkmX_rec = new TH1D("h_q2_epkmX_rec","h_q2_epkmX_rec",50, 0.0, Ebeam);
+  h_q2_epkpkmX_rec = new TH1D("h_q2_epkpkmX_rec","h_q2_epkpkmX_rec",50, 0.0, Ebeam);
+
+  h_xb_eX_rec = new TH1D("h_xb_eX_rec","h_xb_eX_rec",50, 0.0, 1.0);
+  h_xb_epkpkmX_rec = new TH1D("h_xb_epkpkmX_rec","h_xb_epkpkmX_rec",50, 0.0, 1.0);
+
+  h_t_eX_rec = new TH1D("h_t_eX_rec","h_t_eX_rec",50, 0.0, 5.0);
+  h_t_epX_rec = new TH1D("h_t_epX_rec","h_t_epX_rec",50, 0.0, 5.0);
+  h_t_epkpX_rec = new TH1D("h_t_epkpX_rec","h_t_epkpX_rec",50, 0.0, 5.0);
+  h_t_epkmX_rec = new TH1D("h_t_epkmX_rec","h_t_epkmX_rec",50, 0.0, 5.0);
+  h_t_epkpkmX_rec = new TH1D("h_t_epkpkmX_rec","h_t_epkpkmX_rec",50, 0.0, 5.0);
+
+
+  h_q2_eX_accp = new TH1D("h_q2_eX_accp","h_q2_eX_accp",50, 0.0, Ebeam);
+  h_t_epX_accp = new TH1D("h_t_epX_accp","h_t_epX_accp",50, 0.0, 5.0);
+  h_xb_eX_accp = new TH1D("h_xb_eX_accp","h_xb_eX_accp", 50, 0.0, 1.0);
+
+  h_q2_epkpkm_accp = new TH1D("h_q2_epkpkm_accp","h_q2_epkpkm_accp",50, 0.0, Ebeam);
+  h_t_epkpkm_accp = new TH1D("h_t_epkpkm_accp","h_t_epkpkm_accp",50, 0.0, 5.0);
+  h_xb_epkpkm_accp = new TH1D("h_xb_epkpkm_accp","h_xb_epkpkm_accp", 50, 0.0, 1.0);
+
+  h_t_epkp_accp = new TH1D("h_t_epkp_accp","h_t_epkp_accp",50, 0.0, 5.0);
+  h_t_epkm_accp = new TH1D("h_t_epkm_accp","h_t_epkm_accp",50, 0.0, 5.0);
+
+  h_costheta_epkpkm_rec = new TH1D("h_costheta_epkpkm_rec","h_costheta_epkpkm_rec",10, -1.0, 1.0);
+  h_costheta_epkpkm_gen = new TH1D("h_costheta_epkpkm_gen","h_costheta_epkpkm_gen",10, -1.0, 1.0);
+  h_costheta_epkpkm_accp = new TH1D("h_costheta_epkpkm_accp","h_costheta_epkpkm_accp",10, -1.0, 1.0);
+  
+
+  out->mkdir("resolution");
+  out->cd("resolution");
+
+  std::vector< TProfile*> prof_el_p_sect;
+  std::vector< TProfile*> prof_el_theta_sect;
+  std::vector< TProfile*> prof_el_phi_sect;
+  
+  std::vector< TProfile*> prof_pr_p_sect;
+  std::vector< TProfile*> prof_pr_theta_sect;
+  std::vector< TProfile*> prof_pr_phi_sect;
+  
+  std::vector< TProfile*> prof_kp_p_sect;
+  std::vector< TProfile*> prof_kp_theta_sect;
+  std::vector< TProfile*> prof_kp_phi_sect;
+  
+  std::vector< TProfile*> prof_km_p_sect;
+  std::vector< TProfile*> prof_km_theta_sect;
+  std::vector< TProfile*> prof_km_phi_sect;
+  
+
+  std::vector< TProfile*> prof_epkpX_pkp_sect;
+  std::vector< TProfile*> prof_epkpX_pkm_sect;
+
+  std::vector< TProfile*> prof_epkmX_pkm_sect;
+  std::vector< TProfile*> prof_epX_pkm_sect;
+
+  std::vector< TProfile*> prof_epkmX_pkp_sect;
+  std::vector< TProfile*> prof_epX_pkp_sect;
+
+  for( int ss = 0; ss <= 6; ss++ ){
+  
+    prof_el_p_sect.push_back( new TProfile(Form("prof_el_p_sect%d",ss),Form("prof_el_p_sect%d",ss), 50, 0.0, Ebeam, -0.5, 0.5,"s"));
+    prof_el_theta_sect.push_back( new TProfile(Form("prof_el_theta_sect%d",ss),Form("prof_el_theta_sect%d",ss), 50, 0.0, 60.0, -0.5, 0.5,"s") );
+    prof_el_phi_sect.push_back( new TProfile(Form("prof_el_phi_sect%d",ss),Form("prof_el_phi_sect%d",ss), 72, -180.0, 180.0, -0.5, 0.5,"s") );
+
+    prof_pr_p_sect.push_back( new TProfile(Form("prof_pr_p_sect%d",ss),Form("prof_pr_p_sect%d",ss), 50, 0.0, 5.0, -0.5, 0.5,"s"));
+    prof_pr_theta_sect.push_back( new TProfile(Form("prof_pr_theta_sect%d",ss),Form("prof_pr_theta_sect%d",ss), 50, 0.0, 80.0, -0.5, 0.5,"s") );
+    prof_pr_phi_sect.push_back( new TProfile(Form("prof_pr_phi_sect%d",ss),Form("prof_pr_phi_sect%d",ss), 72, -180.0, 180.0, -0.5, 0.5,"s") );
+
+    prof_kp_p_sect.push_back( new TProfile(Form("prof_kp_p_sect%d",ss),Form("prof_kp_p_sect%d",ss), 50, 0.0, 7.0, -0.5, 0.5,"s"));
+    prof_kp_theta_sect.push_back( new TProfile(Form("prof_kp_theta_sect%d",ss),Form("prof_kp_theta_sect%d",ss), 50, 0.0, 60.0, -0.5, 0.5,"s") );
+    prof_kp_phi_sect.push_back( new TProfile(Form("prof_kp_phi_sect%d",ss),Form("prof_kp_phi_sect%d",ss), 72, -180.0, 180.0, -0.5, 0.5,"s") );
+
+    prof_km_p_sect.push_back( new TProfile(Form("prof_km_p_sect%d",ss),Form("prof_km_p_sect%d",ss), 50, 0.0, 7.0, -0.5, 0.5,"s"));
+    prof_km_theta_sect.push_back( new TProfile(Form("prof_km_theta_sect%d",ss),Form("prof_km_theta_sect%d",ss), 50, 0.0, 60.0, -0.5, 0.5,"s") );
+    prof_km_phi_sect.push_back( new TProfile(Form("prof_km_phi_sect%d",ss),Form("prof_phi,_theta_sect%d",ss), 50, -180.0, 180.0, -0.5, 0.5,"s") );
+
+    prof_epkpX_pkp_sect.push_back( new TProfile(Form("prof_epkpX_pkp_sect%d",ss), Form("prof_epkpX_pkp_sect%d",ss), 50, 0.0, 6.0, -0.5, 0.5,"s") );
+    //prof_epX_pkp_sect.push_back( new TProfile(Form("prof_epX_pkp_sect%d",ss), Form("prof_epX_pkp_sect%d",ss), 10, 0.0, 6.0, -0.05, 0.05) );
+
+    prof_epkpX_pkm_sect.push_back( new TProfile(Form("prof_epkpX_pkm_sect%d",ss), Form("prof_epkpX_pkm_sect%d",ss), 50, 0.0, 6.0, -0.5, 0.5,"s") );
+    //prof_epX_pkm_sect.push_back( new TProfile(Form("prof_epX_pkm_sect%d",ss), Form("prof_epX_pkm_sect%d",ss), 10, 0.0, 6.0, -0.05, 0.05) );
+
+    prof_epkmX_pkm_sect.push_back( new TProfile(Form("prof_epkmX_pkm_sect%d",ss), Form("prof_epkmX_pkm_sect%d",ss), 50, 0.0, 6.0, -0.5, 0.5,"s") );
+    prof_epX_pkm_sect.push_back( new TProfile(Form("prof_epX_pkm_sect%d",ss), Form("prof_epX_pkm_sect%d",ss), 50, 0.0, 6.0, -0.05, 0.05,"s") );
+
+    prof_epkmX_pkp_sect.push_back( new TProfile(Form("prof_epkmX_pkp_sect%d",ss), Form("prof_epkmX_pkp_sect%d",ss), 50, 0.0, 6.0, -0.5, 0.5,"s") );
+    prof_epX_pkp_sect.push_back( new TProfile(Form("prof_epX_pkp_sect%d",ss), Form("prof_epX_pkp_sect%d",ss), 50, 0.0, 6.0, -0.5, 0.5,"s") );
+  }
+
+  out->mkdir("generated_kin");
+  out->cd("generated_kin");
+
+  TH2F *h_el_ptheta_gen;
+  TH2F *h_el_phitheta_gen;
+
+  TH2F *h_pr_ptheta_gen;
+  TH2F *h_pr_phitheta_gen;
+
+  TH2F *h_kp_ptheta_gen;
+  TH2F *h_kp_phitheta_gen;
+
+  TH2F *h_km_ptheta_gen;
+  TH2F *h_km_phitheta_gen;
+  
+  TH2F *h_q2w_gen;
+  TH2F *h_q2xb_gen;
+  TH2F *h_q2t_gen;
+
+  TH2F *h_t_pkp_gen;
+  TH2F *h_q2_pkp_gen;
+
+  h_el_ptheta_gen = new TH2F("h_el_ptheta_gen","h_el_ptheta_gen",100, 0.0, 11.0, 100, 0.0, 80.0);
+  h_el_phitheta_gen = new TH2F("h_el_phitheta_gen","h_el_phitheta_gen",200, -180.0, 180.0, 100, 0.0, 80.0);
+  
+  h_pr_ptheta_gen = new TH2F("h_pr_ptheta_gen","h_pr_ptheta_gen",100, 0.0, 11.0, 100, 0.0, 80.0);
+  h_pr_phitheta_gen = new TH2F("h_pr_phitheta_gen","h_pr_phitheta_gen",200, -180.0, 180.0, 100, 0.0, 80.0);
+  
+  h_kp_ptheta_gen = new TH2F("h_kp_ptheta_gen","h_kp_ptheta_gen",100, 0.0, 11.0, 100, 0.0, 80.0);
+  h_kp_phitheta_gen = new TH2F("h_kp_phitheta_gen","h_kp_phitheta_gen",200, -180.0, 180.0, 100, 0.0, 80.0);
+  
+  h_km_ptheta_gen = new TH2F("h_km_ptheta_gen","h_km_ptheta_gen",100, 0.0, 11.0, 100, 0.0, 80.0);
+  h_km_phitheta_gen = new TH2F("h_km_phitheta_gen","h_km_phitheta_gen",200, -180.0, 180.0, 100, 0.0, 80.0);
+  
+  h_q2w_gen = new TH2F("h_q2w_gen","h_q2w_gen",100, 0.0, 5.0, 100, 0.0, 14.0);
+  h_q2xb_gen = new TH2F("h_q2xb_gen","h_q2xb_gen",100, 0.0, 1.0, 100, 0.0, 14.0);
+  h_q2t_gen = new TH2F("h_q2t_gen","h_q2t_gen",100, 0.0, 10.0, 100, 0.0, 14.0);
+
+  h_q2_pkp_gen = new TH2F("h_q2_pkp_gen","h_q2_pkp_gen",100, 0.0, 7.0, 100, 0.0, 12.0);
+  h_t_pkp_gen = new TH2F("h_t_pkp_gen","h_t_pkp_gen",100, 0.0, 7.0, 100, 0.0, 5.0);
+  
+
+  int q2_bins_gen = 5;
+  int t_bins_gen = 18;
+  int xb_bins_gen = 8;
+  
+  TH1F *h_q2_bins_gen;
+  TH1F *h_t_bins_gen;
+  TH1F *h_xb_bins_gen;
+  
+  h_q2_bins_gen = new TH1F("h_q2_bins_gen","h_q2_bins_gen",q2_bins_gen, 0.0, 12.5);
+  h_xb_bins_gen = new TH1F("h_xb_bins_gen","h_xb_bins_gen",xb_bins_gen, 0.0, 1.2);
+  h_t_bins_gen = new TH1F("h_t_bins_gen","h_t_bins_gen",t_bins_gen, 0.0, 3.6);
+
+  std::vector< std::vector< std::vector< TH1F* > > > v_cos_theta_cm_kp_gen;
+  for( int q2_bb = 0; q2_bb <q2_bins_gen; q2_bb++ ){
+    std::vector< std::vector< TH1F* > > temp_v_xb_gen;
+    for( int xb_bb = 0; xb_bb < xb_bins_gen; xb_bb++ ){
+      std::vector< TH1F* >  temp_v_t_gen;
+      for( int t_bb = 0; t_bb < t_bins_gen ; t_bb++ ){
+	std::cout << " creating histogram for GEN cos_theta_cm_kp for q2bin " << q2_bb << " xbbb " << xb_bb << "tbb " << t_bb << std::endl;
+	temp_v_t_gen.push_back( new TH1F(Form("h_t_cos_theta_cm_kp_q2%d_xb%d_t%d_gen", q2_bb, xb_bb, t_bb), Form("h_t_cos_theta_cm_kp_q2%d_xb%d_t%d_gen", q2_bb, xb_bb, t_bb), 10, -1.0, 1.0 ) );
+      }
+      temp_v_xb_gen.push_back( temp_v_t_gen );
+    }
+    v_cos_theta_cm_kp_gen.push_back(temp_v_xb_gen);
+  }
+  
+
+  
   cout << "Analysing Tree: " << inTree << endl;
   cout << "Event Loop starting ... " << endl;
   cout << endl;
@@ -747,12 +1174,13 @@ int selector_phi( const char* inFile, const char* outputfile ){
   double toDeg = 180.0/TMath::Pi();
   TLorentzVector lv_ebeam(0,0,Ebeam, Ebeam);
   
-  int nentries = 1000;// anaTree->GetEntriesFast();
+  int nentries =  anaTree->GetEntriesFast();
+  std::cout << " nentries " << nentries << std::endl;
   for(Int_t k=0; k < nentries; k++){    
 
     anaTree->GetEntry(k);
-
-    if(process_Events > 0 && k == process_Events) break;
+    //std::cout << " k " << k << std::endl;
+    //if(process_Events > 0 && k == process_Events) break;
 
     /// progress:
 
@@ -766,6 +1194,7 @@ int selector_phi( const char* inFile, const char* outputfile ){
 
     hel = 0;
     hel = helicity;
+    
 
     // assign number of particles of each type PER EVENT:
     // (SIZE OF ARRAYS)
@@ -778,11 +1207,18 @@ int selector_phi( const char* inFile, const char* outputfile ){
     Km_count = p4_Km_px->size();
     phot_count = p4_phot_px->size();
    
+      
+
     /// initalisatize variables:
 
     TLorentzVector beam(0,0,Ebeam,Ebeam);
     TLorentzVector target(0,0,0,0.93827);
     double phimass = 1.019;
+
+    TLorentzVector lv_epX_mc;
+    TLorentzVector lv_epkpX_mc;
+    TLorentzVector lv_epkmX_mc;
+    TLorentzVector lv_epkpkmX_mc;
 
     // index of selected particle for the different categories:
     // out tree variables
@@ -797,6 +1233,7 @@ int selector_phi( const char* inFile, const char* outputfile ){
 
     W = 0; Q2 = 0; nu = 0; x = 0; y = 0;
     t1 = 0; cmphi1 = 0; cmcostheta1 = 0; pt1 = 0; eta1 = 0; z1 = 0;
+    
 
     M_e_p_X_miss = 0; M_e_p_X_miss2 = 0;
 
@@ -822,6 +1259,50 @@ int selector_phi( const char* inFile, const char* outputfile ){
       if(phot_count > i){phot[i].SetPxPyPzE(p4_phot_px->at(i),p4_phot_py->at(i),p4_phot_pz->at(i),p4_phot_E->at(i));}
       else{phot[i].SetPxPyPzE(0, 0, 0, 0);}      
     }
+
+    if( data_type == "SIM" ){
+      for( int i = 0; i < p4_mc_pid->size(); i++ ){
+	if( p4_mc_pid->at(i) == 11 ){
+	  int ii = i;
+	  double mc_ele_e = sqrt( p4_mc_px->at(ii)*p4_mc_px->at(ii) + 
+				  p4_mc_py->at(ii)*p4_mc_py->at(ii) +
+				  p4_mc_pz->at(ii)*p4_mc_pz->at(ii) + 
+				  mass_el * mass_el );
+	  mc_ele[0].SetPxPyPzE(p4_mc_px->at(ii), p4_mc_py->at(ii), p4_mc_pz->at(ii), mc_ele_e );
+	}
+	else if( p4_mc_pid->at(i) == 2212 ){
+	  int ii = i;
+	  double mc_pr_e = sqrt( p4_mc_px->at(ii)*p4_mc_px->at(ii) + 
+				 p4_mc_py->at(ii)*p4_mc_py->at(ii) +
+				 p4_mc_pz->at(ii)*p4_mc_pz->at(ii) + 
+				  m_p * m_p );
+	  mc_prot[0].SetPxPyPzE(p4_mc_px->at(ii), p4_mc_py->at(ii), p4_mc_pz->at(ii), mc_pr_e );
+	}
+	else if( p4_mc_pid->at(i) == 321 ){
+	  int ii = i;
+	  double mc_kp_e = sqrt( p4_mc_px->at(ii)*p4_mc_px->at(ii) + 
+				 p4_mc_py->at(ii)*p4_mc_py->at(ii) +
+				 p4_mc_pz->at(ii)*p4_mc_pz->at(ii) + 
+				 m_Kp * m_Kp );
+	  mc_kp[0].SetPxPyPzE(p4_mc_px->at(ii), p4_mc_py->at(ii), p4_mc_pz->at(ii), mc_kp_e );
+	}
+	else if( p4_mc_pid->at(i) == -321 ){
+	  int ii = i;
+	  double mc_km_e = sqrt( p4_mc_px->at(ii)*p4_mc_px->at(ii) + 
+				 p4_mc_py->at(ii)*p4_mc_py->at(ii) +
+				 p4_mc_pz->at(ii)*p4_mc_pz->at(ii) + 
+				 m_Km * m_Km );
+	  mc_km[0].SetPxPyPzE(p4_mc_px->at(ii), p4_mc_py->at(ii), p4_mc_pz->at(ii), mc_km_e );
+	}
+      }
+      
+      lv_epX_mc = beam + target - mc_ele[0] - mc_prot[0];
+      lv_epkpX_mc = beam + target - mc_ele[0] - mc_prot[0] - mc_kp[0];
+      lv_epkmX_mc = beam + target - mc_ele[0] - mc_prot[0]  - mc_km[0];
+      lv_epkpkmX_mc = beam + target - mc_ele[0] - mc_prot[0]  - mc_kp[0]  - mc_km[0]; 
+
+    }
+
 
     //  Build event:
     TLorentzVector lv_el_max(0,0,0,0);
@@ -863,6 +1344,7 @@ int selector_phi( const char* inFile, const char* outputfile ){
       }
     }
 
+
     //particle kinematics before any selection criteria or cuts
     if( ele_count > min_el ){
       hist_all_electron_p->Fill(lv_el_max.P());
@@ -871,6 +1353,11 @@ int selector_phi( const char* inFile, const char* outputfile ){
       hist_all_electron_p_vs_theta->Fill(lv_el_max.Theta()*toDeg, lv_el_max.P());
       hist_all_electron_p_vs_phi->Fill(lv_el_max.Phi()*toDeg, lv_el_max.P());
       hist_all_electron_theta_vs_phi->Fill(lv_el_max.Phi()*toDeg, lv_el_max.Theta()*toDeg);
+
+      // below are histos for simulation to extract the acceptance
+      if( ele_count > min_el ){
+	h_theta_eX_phi_rec->Fill(lv_el_max.Phi()*toDeg, lv_el_max.Theta()*toDeg); 
+      }
     }
 
     if( prot_count > min_pr ){
@@ -880,6 +1367,11 @@ int selector_phi( const char* inFile, const char* outputfile ){
       hist_all_proton_p_vs_theta->Fill(lv_pr_max.Theta()*toDeg, lv_pr_max.P());
       hist_all_proton_p_vs_phi->Fill(lv_pr_max.Phi()*toDeg, lv_pr_max.P());
       hist_all_proton_theta_vs_phi->Fill(lv_pr_max.Phi()*toDeg, lv_pr_max.Theta()*toDeg);
+
+      //histos for acceptance
+      if( ele_count > min_el ){
+	h_pr_theta_phi_rec->Fill(lv_pr_max.Phi()*toDeg, lv_pr_max.Theta()*toDeg);
+      }
     }
 
     if( Kp_count > min_kp ){
@@ -889,6 +1381,11 @@ int selector_phi( const char* inFile, const char* outputfile ){
       hist_all_kp_p_vs_theta->Fill(lv_kp_max.Theta()*toDeg, lv_kp_max.P());
       hist_all_kp_p_vs_phi->Fill(lv_kp_max.Phi()*toDeg, lv_kp_max.P());
       hist_all_kp_theta_vs_phi->Fill(lv_kp_max.Phi()*toDeg, lv_kp_max.Theta()*toDeg);
+      
+      //histos for acceptance 
+      if( ele_count > min_el ){
+	h_kp_theta_phi_rec->Fill(lv_kp_max.Phi()*toDeg, lv_kp_max.Theta()*toDeg);
+      }
     }
 
     if( Km_count > min_km ){
@@ -898,6 +1395,11 @@ int selector_phi( const char* inFile, const char* outputfile ){
       hist_all_km_p_vs_theta->Fill(lv_km_max.Theta()*toDeg, lv_km_max.P());
       hist_all_km_p_vs_phi->Fill(lv_km_max.Phi()*toDeg, lv_km_max.P());
       hist_all_km_theta_vs_phi->Fill(lv_km_max.Phi()*toDeg, lv_km_max.Theta()*toDeg);
+
+      //histos for acceptance
+      if( ele_count > min_el ){
+	h_km_theta_phi_rec->Fill(lv_km_max.Phi()*toDeg, lv_km_max.Theta()*toDeg);
+      }
     }
 
     TLorentzVector lv_q = lv_ebeam - lv_el_max;
@@ -908,10 +1410,6 @@ int selector_phi( const char* inFile, const char* outputfile ){
     TLorentzVector lv_epkpkmX = lv_ebeam + target - lv_el_max - lv_pr_max - lv_kp_max - lv_km_max;
     TLorentzVector lv_ekpkmX = lv_ebeam + target - lv_el_max - lv_kp_max - lv_km_max;
     TLorentzVector lv_epkmX = lv_ebeam + target - lv_el_max - lv_pr_max - lv_km_max;
-
-
-
-
 
     double el_e = lv_el_max.P();
     double pr_p = lv_pr_max.P();
@@ -944,7 +1442,7 @@ int selector_phi( const char* inFile, const char* outputfile ){
     */
     double ang_H = lv_kp_max.Vect().Angle(lv_km_max.Vect());
     double cos_angle_H = cos(ang_H);
-    std::cout<< " cos angle H (no boost ) " << cos_angle_H << std::endl;
+    //std::cout<< " cos angle H (no boost ) " << cos_angle_H << std::endl;
 
 
 
@@ -971,6 +1469,12 @@ int selector_phi( const char* inFile, const char* outputfile ){
 
     if(  ele_count > 0 ){
       h_eX->Fill(lv_eX.M());      
+
+      if(analysis_sim == "SIM"){
+	prof_el_p_sect[0]->Fill( mc_ele[0].P(), lv_el_max.P()/mc_ele[0].P());
+	prof_el_theta_sect[0]->Fill( mc_ele[0].Theta()*toDeg, lv_el_max.Theta()/mc_ele[0].Theta());
+	prof_el_phi_sect[0]->Fill( mc_ele[0].Phi()*toDeg, lv_el_max.Phi()/mc_ele[0].Phi());
+      }
     }
 
     if( q2_cut && w_cut ){
@@ -984,6 +1488,15 @@ int selector_phi( const char* inFile, const char* outputfile ){
       hist_Q2_phi->Fill(lv_el_max.Phi()*toDeg,q2);     
       //hist_phi_cmphi->Fill(phi);
       hist_trentphi->Fill(phi);
+
+      h_el_theta_rec->Fill( lv_el_max.Theta() * 180.0/Pival);
+      h_q2_eX_rec->Fill(q2);
+      h_q2_eX_phi_rec->Fill(lv_el_max.Phi()*toDeg, q2);
+      h_theta_eX_phi_rec->Fill(lv_el_max.Phi()*toDeg, lv_el_max.Theta()*toDeg );
+      h_xb_eX_rec->Fill(xb);
+
+
+      
 	
       if( prot_count > 0 && high_el_e_cut ){
 	h_epX->Fill(lv_epX.M2());
@@ -991,12 +1504,58 @@ int selector_phi( const char* inFile, const char* outputfile ){
 	hist_x_t->Fill(t,xb);
 	hist_t_phi->Fill(lv_pr_max.Phi()*toDeg,t);	
 	h2_epX_eX->Fill(lv_epX.M2(), lv_eX.M2());
+
+	h_el_theta_epX_rec->Fill( lv_el_max.Theta() * 180.0/Pival);
+	h_pr_theta_epX_rec->Fill( lv_pr_max.Theta() * 180.0/Pival);
+ 	h_q2_epX_rec->Fill( q2 );
+	h_t_epX_rec->Fill(t);
+
+	if(analysis_sim == "SIM"){
+	  prof_pr_p_sect[0]->Fill( mc_prot[0].P(), lv_pr_max.P()/mc_prot[0].P());
+	  prof_pr_theta_sect[0]->Fill( mc_prot[0].Theta()*toDeg, lv_pr_max.Theta()/mc_prot[0].Theta());
+	  prof_pr_phi_sect[0]->Fill( mc_prot[0].Phi()*toDeg, lv_pr_max.Phi()/mc_prot[0].Phi());
+	}
+
+      }
+
+      if( Kp_count > 0 && high_el_e_cut ){
+	h_kp_theta_ekpX_rec->Fill(lv_kp_max.Theta() * 180.0/Pival);
+	if(analysis_sim == "SIM"){
+	  prof_kp_p_sect[0]->Fill( mc_kp[0].P(), lv_kp_max.P()/mc_kp[0].P());
+	  prof_kp_theta_sect[0]->Fill( mc_kp[0].Theta()*toDeg, lv_kp_max.Theta()/mc_kp[0].Theta());
+	  prof_kp_phi_sect[0]->Fill( mc_kp[0].Phi()*toDeg, lv_kp_max.Phi()/mc_kp[0].Phi());
+	}
+
+      }
+
+      if( Km_count > 0 && high_el_e_cut ){
+	h_km_theta_ekmX_rec->Fill(lv_km_max.Theta() * 180.0/Pival);
+	if(analysis_sim == "SIM"){
+	  prof_km_p_sect[0]->Fill( mc_km[0].P(), lv_km_max.P()/mc_km[0].P());
+	  prof_km_theta_sect[0]->Fill( mc_km[0].Theta()*toDeg, lv_km_max.Theta()/mc_km[0].Theta());
+	  prof_km_phi_sect[0]->Fill( mc_km[0].Phi()*toDeg, lv_km_max.Phi()/mc_km[0].Phi());
+	}
       }
 
       if( prot_count > 0 && Kp_count > 0 && high_el_e_cut ){
 	h_epkpX->Fill(lv_epkpX.M2());	
 	h2_epkpX_eX->Fill(lv_epkpX.M2(), lv_eX.M2());
 	h2_epkpX_epX->Fill(lv_epkpX.M2(), lv_epX.M2());
+	hist_q2_vs_p_kp->Fill( lv_kp_max.P(), Q2 );
+	hist_t_vs_p_kp->Fill( lv_kp_max.P(), t  );
+
+	h_el_theta_epkpX_rec->Fill( lv_el_max.Theta() * 180.0/Pival);
+	h_pr_theta_epkpX_rec->Fill( lv_pr_max.Theta() * 180.0/Pival);
+	h_kp_theta_epkpX_rec->Fill( lv_kp_max.Theta() * 180.0/Pival);
+
+ 	h_q2_epkpX_rec->Fill( Q2 );
+	h_t_epkpX_rec->Fill(t);
+
+	if(analysis_sim == "SIM"){
+
+	  prof_epkpX_pkp_sect[0]->Fill( lv_kp_max.P() , lv_epkpX.M() - lv_epkpX_mc.M() );
+	  prof_epX_pkp_sect[0]->Fill( lv_kp_max.P() , lv_epX.M() - lv_epX_mc.M() );
+	}
 
       }
 
@@ -1004,6 +1563,21 @@ int selector_phi( const char* inFile, const char* outputfile ){
 	h_epkmX->Fill(lv_epkmX.M2());	
 	h2_epkmX_eX->Fill(lv_epkmX.M2(), lv_eX.M2());
 	h2_epkmX_epX->Fill(lv_epkmX.M2(), lv_epX.M2());
+	hist_q2_vs_p_km->Fill( lv_km_max.P(), Q2 );
+	hist_t_vs_p_km->Fill( lv_km_max.P(), t  );
+
+	h_el_theta_epkmX_rec->Fill( lv_el_max.Theta() * 180.0/Pival);
+	h_pr_theta_epkmX_rec->Fill( lv_pr_max.Theta() * 180.0/Pival);
+	h_km_theta_epkmX_rec->Fill( lv_km_max.Theta() * 180.0/Pival);
+	h_q2_epkmX_rec->Fill( Q2 );
+	h_t_epkmX_rec->Fill(t);
+
+	if(analysis_sim == "SIM"){
+	  prof_epkmX_pkm_sect[0]->Fill( lv_km_max.P() , lv_epkmX.M() - lv_epkmX_mc.M() );
+	  prof_epX_pkm_sect[0]->Fill( lv_km_max.P() , lv_epX.M() - lv_epX_mc.M() );
+	}
+
+
       }
 
       if( prot_count > 0 && Kp_count > 0 && Km_count > 0 && high_el_e_cut ){
@@ -1014,9 +1588,47 @@ int selector_phi( const char* inFile, const char* outputfile ){
 	h2_epkpkmX_epkpX->Fill(lv_epkpkmX.M2(), lv_epkpX.M2());
 	h2_epkpkmX_epkmX->Fill(lv_epkpkmX.M2(), lv_epkmX.M2());
 	h2_epkpkmX_epX->Fill(lv_epkpkmX.M2(), lv_epX.M2());
+
+
+	h_el_theta_epkpkmX_rec->Fill( lv_el_max.Theta() * 180.0/Pival);
+	h_pr_theta_epkpkmX_rec->Fill( lv_pr_max.Theta() * 180.0/Pival);
+	h_kp_theta_epkpkmX_rec->Fill( lv_kp_max.Theta() * 180.0/Pival);
+	h_km_theta_epkpkmX_rec->Fill( lv_km_max.Theta() * 180.0/Pival);
+	h_q2_epkpkmX_rec->Fill(Q2);
+	h_t_epkpkmX_rec->Fill(t);
+
+	if(analysis_sim == "SIM"){
+	  prof_epkpX_pkm_sect[0]->Fill( lv_km_max.P() , lv_epkpX.M() - lv_epkpX_mc.M() );
+	  prof_epkmX_pkp_sect[0]->Fill( lv_kp_max.P() , lv_epkmX.M() - lv_epkmX_mc.M() );
+
+	  prof_epX_pkp_sect[0]->Fill( lv_kp_max.P(), lv_epX.M() - lv_epX_mc.M() );
+	  prof_epX_pkm_sect[0]->Fill( lv_km_max.P(), lv_epX.M() - lv_epX_mc.M() );
+
+	}
+
+ 
+	TLorentzVector lv_phi2 = lv_kp_max + lv_km_max;
+
+	TVector3 boost_phiCM;       
+	TLorentzVector lv_kpCMPHI;
+	TLorentzVector lv_kmCMPHI;
+	lv_kpCMPHI=lv_kp_max;
+	lv_kmCMPHI=lv_km_max;   
+	boost_phiCM = lv_phi2.BoostVector();   
+	//std::cout << " phi boost components " << boost_phiCM.Px() << " " << boost_phiCM.Py() << " " << boost_phiCM.Pz() << std::endl;
+   
+	lv_kpCMPHI.Boost(-boost_phiCM);
+	lv_kmCMPHI.Boost(-boost_phiCM);
+	if( lv_phi2.M() < 1.1 && lv_phi2.M() > 0.98 ){
+	  double cos_theta_cm_kp2 = TMath::Cos(lv_kpCMPHI.Theta());  // this is called Theta in FX's generator, technically it is cos(theta) variables
+	  hist_phi_cos_theta_H_final->Fill(cos_theta_cm_kp2);
+	  h_costheta_epkpkm_rec->Fill(cos_theta_cm_kp2);
+	}
+
+
       }
 	
-    	         
+
       if( Kp_count > 0 && Km_count > 0 ){ //high_el_e_cut ){
 	h2_ekpkmX_eX->Fill(lv_ekpkmX.M2(), lv_eX.M2());
 	h2_ekpkmX_epX->Fill(lv_ekpkmX.M2(), lv_epX.M2());
@@ -1035,15 +1647,10 @@ int selector_phi( const char* inFile, const char* outputfile ){
 	if( lv_ekpkmX.M2() < 1.15 && lv_ekpkmX.M2() > 0.7 ){
 	  h_inv_kpkm_final_ekpkm->Fill(lv_phi.M());
 	}
-
-    TVector3 boost = -lv_phi.BoostVector();
-    lv_kp_max.Boost(boost);
-    lv_km_max.Boost(boost);
-    double cos_theta_H = lv_kp_max.Vect().Angle(lv_km_max.Vect());
-    std::cout << " cos theta H  (boost) " << cos_theta_H << std::endl;
-
-	
       }
+
+      
+
 
       if( prot_count > 0 && Kp_count > 0 && Km_count > 0 && high_el_e_cut ){
 	  h_colin_ang_pr->Fill(colin_ang_pr);
@@ -1053,6 +1660,9 @@ int selector_phi( const char* inFile, const char* outputfile ){
 	  h_colin_pr->Fill(colin_pr);
 	  h_colin_kp->Fill(colin_kp);
 	  h_colin_km->Fill(colin_km);
+
+	  
+
 
 	if(low_theta_kp_cut && low_theta_km_cut && low_p_kp_cut && low_p_km_cut && low_p_pr_cut ){
 	  
@@ -1066,6 +1676,7 @@ int selector_phi( const char* inFile, const char* outputfile ){
 	  TLorentzVector lv_phi = lv_kp_max + lv_km_max;
 	  TLorentzVector lv_pkm = lv_pr_max + lv_km_max;
 	  h_inv_kpkm->Fill(lv_phi.M());
+
 
 	  if( epkpkm_mm2_cut && miss_perp_cut && colin_pr_cut && colin_km_cut ){
 
@@ -1095,11 +1706,17 @@ int selector_phi( const char* inFile, const char* outputfile ){
 	      h_inv_kpkm_final->Fill(lv_phi.M());
 
 	      h2_kpkm_pkm->Fill(lv_pkm.M(), lv_phi.M());
-	      
-	      //hist_tmin_final->Fill(t_min);
-	      hist_phi_cos_theta_H_final->Fill(cos_angle_H);
+	      h2_pel_kpkm->Fill(lv_el_max.P(), lv_phi.M());
+	      h2_pphi_kpkm->Fill( lv_phi.P(), lv_phi.M() );
 
-	      W_out = W;
+
+	      TLorentzVector lv_kp_asPIP;
+	      lv_kp_asPIP.SetPxPyPzE( lv_kp_max.Px(), lv_kp_max.Py(), lv_kp_max.Pz(), sqrt(lv_kp_max.P()*lv_kp_max.P() + m_pip*m_pip) );
+	      TLorentzVector lv_phi_kpasPIP = lv_kp_asPIP + lv_km_max;
+	      
+	      h2_pphi_kpkm_kaonPasPIP->Fill( lv_phi_kpasPIP.P(), lv_phi_kpasPIP.M() );
+
+	      W_out = W;	      
 	      Q2_out=q2;
 	      x_out=xb;
 	      hel=helicity;
@@ -1107,71 +1724,314 @@ int selector_phi( const char* inFile, const char* outputfile ){
 	      //cmcostheta1_out= cm_cos_theta;
 	      t1_out=t;
 
+	      //set up boost vectors to boost measured Kp into phi COM frame
+	      TVector3 boost_phiCM;       
+	      TLorentzVector lv_kpCMPHI;
+	      TLorentzVector lv_kmCMPHI;
+	      lv_kpCMPHI=lv_kp_max;
+	      lv_kmCMPHI=lv_km_max;   
+	      boost_phiCM = lv_phi.BoostVector();   
+	      //std::cout << " phi boost components " << boost_phiCM.Px() << " " << boost_phiCM.Py() << " " << boost_phiCM.Pz() << std::endl;
+   
+	      lv_kpCMPHI.Boost(-boost_phiCM);
+	      lv_kmCMPHI.Boost(-boost_phiCM);
+
+	      double cos_theta_cm_kp = TMath::Cos(lv_kpCMPHI.Theta());  // this is called Theta in FX's generator, technically it is cos(theta) variables
+	      //hist_phi_cos_theta_H_final->Fill(cos_theta_cm_kp);
+	      
 
 	      ////////////////////////////////////////////
 	      // added variables to plot from the phi generator
-	      /*	      double nu = q2/(2.*target.M()*xb);
-	      double y = nu/lv_beam.E();
-	      double e1 = TMath::Power(y*xb*target.M(),2)/q2;
-	      double EPS = (1.0-y-e1)/(1-y+y*y/2+e1);
-	      if(EPS<0.||EPS>1.)return 0.;
-	      double W2 = target.M()*target.M() + 2.0*target.M()*nu - q2;
-	      if(W2<TMath::Power(ProtonMass+phimass,2.))return 0.;
-	      double W = TMath::Sqrt(W2);
+	      
+	      double gg_angle = TMath::RadToDeg() * (lv_kp_max.Vect().Angle( lv_km_max.Vect() ) ); /// in the lab frame      
+	      double theta = TMath::RadToDeg()*TMath::ACos(cos_theta_cm_kp);  
 
-	      double Wth = target.M()+phimass;
-	      double cT = 400*(1-Wth*Wth/W2)*TMath::Power(W,0.32);
-	      double sigmT = cT/TMath::Power(1+Q2/(phimass*phimass),3.0);
-	      double R = 0.4*Q2/(phimass*phimass);
+	      // now we can continue to determine other event related variables
+	      // note m_p = proton mass
+	      nu = q2/(2.0*m_p*xb);
+	      y = nu/lv_ebeam.E();
+	      double e1 = TMath::Power(y*xb*m_p,2)/q2;
+
+	      // photon polarization parameter 
+	      double EPS = (1.0 - y - e1)/(1 - y + y*y/2 +e1);
+
+	      //W2 and W
+	      double W2 = m_p*m_p + 2.0*m_p*nu - q2;
+	      W = sqrt(W2);
+	      double Wth = m_p + m_phi;
+
+	      //lets calculate tmin
+	      double e1cm = m_p*(m_p + nu)/W;
+	      double p1cm = m_p*TMath::Sqrt(nu*nu + q2)/W;
+	      double e2cm = (W2 + m_p*m_p - m_phi*m_phi)/(2.0*W);
+
+	      double p2cm = TMath::Sqrt(e2cm*e2cm - m_p*m_p);
+	      double e3cm = (W2-m_phi*m_phi + m_p*m_p)/(2.0*W);
+	      double p3cm = TMath::Sqrt(e3cm*e3cm - m_p*m_p);
+
+	      // first method to get the tmin and tmax values
+	      double tmin = 2.0*(m_p*m_p - e1cm*e2cm - p1cm*p2cm);    
+	      //double tmin2 = TMath::Power(q2 + phi_mass*phi_mass,2)/(4.0*W2) - TMath::Power(p1cm-p3cm,2);
+	      double tmax = 2.0*(m_p*m_p - e1cm*e2cm + p1cm*p2cm);
+	      //double tmax2 = TMath::Power(q2 + phi_mass*phi_mass,2)/(4.0*W2) - TMath::Power(p1cm+p3cm,2);
+    
+	      //std::cout <<" tmin " << tmin << std::endl;
+	      //std::cout <<" tmax " << tmax << " tmax2 " << tmax2 << std::endl;
+
+	      tmin = -(TMath::Power(q2+m_phi*m_phi,2)/4./W2-TMath::Power(p1cm-p3cm,2));
+    
+	      // parameterization of the model
+	      double cT = 400*(1-Wth*Wth/W2)*TMath::Power(W,0.32);    
+	      double sigmT = cT/TMath::Power(1+q2/(m_phi*m_phi),3.0);
+	      double R = 0.4*q2/(m_phi*m_phi); // assume indep of W
 	      double sigmL = R*sigmT;
-	      
-	      double E1cm = target.M()*(target.M() + nu)/w;
-	      double P1cm = target.M()*TMath::Sqrt(nu*nu+Q2)/W;
-	      double E2cm = (W2 + target.M()*target.M()-phimass*phimass)/(2.*W);
-	      if(E2cm<target.M())return 0.;
-	      double P2cm = TMath::Sqrt(E2cm*E2cm-target.M()*target.M());
-	      double E3cm = (W2-phimass*phimass+target.M()*target.M())/(2*W);
-	      double P3cm = TMath::Sqrt(E3cm*E3cm-target.M()*target.M());
 
-	      double tmax = 2.0*(target.M()*target.M() - E1cm*E2cm + P1cm*P2cm);
-	      double tmin = 2.0*(target.M()*target.M() - E1cm*E2cm - P1cm*P2cm);
-	      if(t<tmin||t>tmax)return 0.;
-	      
-	      tmin = -(TMath::Power(Q2+phimass*phimass,2)/4./W2-TMath::Power(P1cm-P3cm,2));
-	      
-	      double T  = TMath::Abs(t);
-	      double T0 = TMath::Abs(tmin);
-	      double B = 2.2 + 4*0.24*TMath::Log(W);
-	      double FF = TMath::Exp(B*(T0-T));
-	      TVector3 boost = -lv_phi.BoostVector();
-	      lv_kp_max.Boost(boost);
-	      lv_km_max.Boost(boost);
-	      double cos_theta_H = lv_kp_max.Vect().Angle(lv_km_max.Vect());
-	      std::cout << " cos theta H " << cos_theta_H << std::endl;
+	      //exponential t-dep of cross section
+	      double T = TMath::Abs(t);
+	      double t0 = TMath::Abs(tmin);
+	      double B = 2.2 + 4.0*0.24*TMath::Log(W);
+	      double FF = TMath::Exp(B*(t0-T));
 
-	      */	      
-	      //double r04_00 = EPS*R/(1+EPS*R);
-	      ///double CM_F = ( (1.-r04_00) + (3.*r04_00-1.)*cos_theta_H*cos_theta_H )*0.75;
-	      //double phi_modul = ( 1 + 0.5*TMath::Cos(PHI_G))/1.5;
-	      
-	      
-	      
+	      double r04_00 = EPS*R/(1+EPS*R);
+	      double cm_f = ( (1.-r04_00) + (3.*r04_00-1.)*cos_theta_cm_kp*cos_theta_cm_kp)*0.75;
 
+	      h_q2_epkpkmX_rec->Fill(q2);
+	      h_t_epkpkmX_rec->Fill(t);
+	      h_xb_epkpkmX_rec->Fill(xb);
+	      hist_tmin_final->Fill(tmin);
+	      hist_tmin_vs_q2->Fill(tmin, q2);
+	      hist_tmin_vs_xb->Fill( xb, tmin);
+
+	      //plot the variation of tmin with q2 at fixed xb
+	      int xb_bin_final = hist_xb_bins->FindBin(xb);
+	      if( xb_bin_final >= 0 && xb_bin_final < 10 ){
+		hist_tmin_vs_q2_per_xb_bin[xb_bin_final]->Fill( q2, tmin);
+	      }
+
+	      if( print_out_event_info ){
+		
+		std::cout << " Q2 " << q2 << std::endl;
+		std::cout << " xb " << xb << std::endl;
+		std::cout << " w " << W << std::endl;		
+		std::cout << " y " << y << std::endl;
+		std::cout << " e1 " << e1 << std::endl;
+		std::cout << " gg " << gg_angle << std::endl;
+		std::cout << " EPS " << EPS << std::endl;
+		std::cout << " nu " << nu << std::endl;
+		std::cout << " Wth " << Wth << std::endl;
+		std::cout << " cT " << cT << std::endl;
+		std::cout << " sigmT " << sigmT << std::endl;
+		std::cout << " R " << R << std::endl;
+		std::cout << " sigmL " << sigmL << std::endl;
+		std::cout << " tmax " << tmax << std::endl;
+		std::cout << " tmin " << tmin << std::endl;
+		std::cout << " T " << T << std::endl;
+		std::cout << " T0 " << t0 << std::endl;
+		std::cout << " B " << B << std::endl;
+		std::cout << " FF " << FF << std::endl;
+		std::cout << " cos_theta_H " << cos_theta_cm_kp << std::endl;
+		std::cout << " r04_00 " << r04_00 << std::endl;
+		std::cout << " CM_F " << cm_f << std::endl;
+		
+	      }
+	      
+	      
+	      
 	      //std::cout << " helicity " << helicity << " " << hel << std::endl;
 	      
-	      out_tree1.Fill();
-	    }	    
+	      //out_tree1.Fill();
+	  }
 	}
       }
     }	  
   	
 
+    if( data_type == "SIM"){
+      double mc_el_theta = mc_ele[0].Theta() * 180.0/Pival;
+      double mc_pr_theta = mc_prot[0].Theta() * 180.0/Pival;
+      double mc_kp_theta = mc_kp[0].Theta() * 180.0/Pival;
+      double mc_km_theta = mc_km[0].Theta() * 180.0/Pival;
+  
+      double mc_el_phi = mc_ele[0].Phi() * 180.0/Pival;
+      double mc_pr_phi = mc_prot[0].Phi() * 180.0/Pival;
+      double mc_kp_phi = mc_kp[0].Phi() * 180.0/Pival;
+      double mc_km_phi = mc_km[0].Phi() * 180.0/Pival;
+  
+      TLorentzVector lv_phi_gen = mc_kp[0] + mc_km[0];
 
+      h_el_ptheta_gen->Fill( mc_ele[0].P(), mc_el_theta);
+      h_pr_ptheta_gen->Fill( mc_prot[0].P(), mc_pr_theta);
+      h_kp_ptheta_gen->Fill( mc_kp[0].P(), mc_kp_theta);
+      h_km_ptheta_gen->Fill( mc_km[0].P(), mc_km_theta);
+
+      h_el_phitheta_gen->Fill( mc_el_phi, mc_el_theta);
+      h_pr_phitheta_gen->Fill( mc_pr_phi, mc_pr_theta);
+      h_kp_phitheta_gen->Fill( mc_kp_phi, mc_kp_theta);
+      h_km_phitheta_gen->Fill( mc_km_phi, mc_km_theta);
+
+
+      // below histo specifically for acceptance
+      h_theta_eX_phi_gen->Fill( mc_el_phi, mc_el_theta);
+      h_pr_theta_phi_gen->Fill( mc_pr_phi, mc_pr_theta);
+      h_kp_theta_phi_gen->Fill( mc_kp_phi, mc_kp_theta);
+      h_km_theta_phi_gen->Fill( mc_km_phi, mc_km_theta);
+
+
+ 
+    // phi angle in trento convention
+      TVector3 v3L_gen = (lv_ebeam.Vect()).Cross(mc_ele[0].Vect());
+      TVector3 v3H_gen = (mc_prot[0].Vect()).Cross((lv_ebeam-mc_ele[0]).Vect());
+      float phi_gen = TMath::RadToDeg()* v3L_gen.Angle(v3H_gen);
+      if(v3L_gen.Dot(mc_prot[0].Vect())<0)phi_gen = 360.-phi_gen;
+
+      TLorentzVector lv_q_gen = lv_ebeam - mc_ele[0];
+      double W_gen = (lv_q_gen + target).M();
+      double q2_gen = 4.0*lv_ebeam.E()*mc_ele[0].E()*sin(mc_ele[0].Theta()/2.0)*sin(mc_ele[0].Theta()/2.0);
+      double xb_gen = q2_gen/(2.0 * target.M()*(lv_q_gen.E()));
+      double t_gen = 2.0*target.M()*(mc_prot[0].E() - target.M());
+
+      h_q2w_gen->Fill(W_gen,q2_gen);
+      h_q2xb_gen->Fill(xb_gen,q2_gen);
+      h_q2t_gen->Fill(t_gen, q2_gen);
+      h_q2_pkp_gen->Fill(mc_kp[0].P(), q2_gen);
+      h_t_pkp_gen->Fill(mc_kp[0].P(), t_gen);
+
+      //cmphi1_out=phi;
+      //cmcostheta1_out= cm_cos_theta;
+      //t1_out=t;
+
+      //set up boost vectors to boost measured Kp into phi COM frame
+      TVector3 boost_phiCM_gen;       
+      TLorentzVector lv_kpCMPHI_gen;
+      TLorentzVector lv_kmCMPHI_gen;
+      lv_kpCMPHI_gen=mc_kp[0];
+      lv_kmCMPHI_gen=mc_km[0];   
+      boost_phiCM_gen = lv_phi_gen.BoostVector();   
+      //std::cout << " phi boost components " << boost_phiCM.Px() << " " << boost_phiCM.Py() << " " << boost_phiCM.Pz() << std::endl;
+   
+      lv_kpCMPHI_gen.Boost(-boost_phiCM_gen);
+      lv_kmCMPHI_gen.Boost(-boost_phiCM_gen);
+
+      double cos_theta_cm_kp_gen = TMath::Cos(lv_kpCMPHI_gen.Theta());  // this is called Theta in FX's generator, technically it is cos(theta) variables
+      h_costheta_epkpkm_gen->Fill( cos_theta_cm_kp_gen );
+	      
+      ////////////////////////////////////////////
+      // added variables to plot from the phi generator
+
+      double gg_angle_gen = TMath::RadToDeg() * (mc_kp[0].Vect().Angle( mc_km[0].Vect() ) ); /// in the lab frame      
+      double theta_gen = TMath::RadToDeg()*TMath::ACos(cos_theta_cm_kp_gen);  
+
+      // now we can continue to determine other event related variables
+      // note m_p = proton mass
+      double nu_gen = q2_gen/(2.0*m_p*xb_gen);
+      double y_gen = nu_gen/lv_ebeam.E();
+      double e1_gen = TMath::Power(y_gen*xb_gen*m_p,2)/q2_gen;
+     
+      // photon polarization parameter 
+      double EPS_gen = (1.0 - y_gen - e1_gen)/(1 - y_gen + y_gen*y_gen/2 +e1_gen);
+
+      //W2 and W
+      double W2_gen = m_p*m_p + 2.0*m_p*nu_gen - q2_gen;
+      W_gen = sqrt(W2_gen);
+      double Wth_gen = m_p + m_phi;
+
+      //lets calculate tmin
+      double e1cm_gen = m_p*(m_p + nu_gen)/W_gen;
+      double p1cm_gen = m_p*TMath::Sqrt(nu_gen*nu_gen + q2_gen)/W_gen;
+      double e2cm_gen = (W2_gen + m_p*m_p - m_phi*m_phi)/(2.0*W_gen);
+
+      double p2cm_gen = TMath::Sqrt(e2cm_gen*e2cm_gen - m_p*m_p);
+      double e3cm_gen = (W2_gen-m_phi*m_phi + m_p*m_p)/(2.0*W_gen);
+      double p3cm_gen = TMath::Sqrt(e3cm_gen*e3cm_gen - m_p*m_p);
+
+      // first method to get the tmin and tmax values
+      double tmin_gen = 2.0*(m_p*m_p - e1cm_gen*e2cm_gen - p1cm_gen*p2cm_gen);    
+      //double tmin2 = TMath::Power(q2 + phi_mass*phi_mass,2)/(4.0*W2) - TMath::Power(p1cm-p3cm,2);
+      double tmax_gen = 2.0*(m_p*m_p - e1cm_gen*e2cm_gen + p1cm_gen*p2cm_gen);
+      //double tmax2 = TMath::Power(q2 + phi_mass*phi_mass,2)/(4.0*W2) - TMath::Power(p1cm+p3cm,2);
+    
+      //std::cout <<" tmin " << tmin << std::endl;
+      //std::cout <<" tmax " << tmax << " tmax2 " << tmax2 << std::endl;
+
+      tmin_gen = -(TMath::Power(q2_gen+m_phi*m_phi,2)/4./W2_gen-TMath::Power(p1cm_gen-p3cm_gen,2));
+    
+      // parameterization of the model
+      double cT_gen = 400*(1-Wth_gen*Wth_gen/W2_gen)*TMath::Power(W_gen,0.32);    
+      double sigmT_gen = cT_gen/TMath::Power(1+q2_gen/(m_phi*m_phi),3.0);
+      double R_gen = 0.4*q2_gen/(m_phi*m_phi); // assume indep of W
+      double sigmL = R_gen*sigmT_gen;
+
+      //exponential t-dep of cross section
+      double T_gen = TMath::Abs(t_gen);
+      double t0_gen = TMath::Abs(tmin_gen);
+      double B_gen = 2.2 + 4.0*0.24*TMath::Log(W_gen);
+      double FF_gen = TMath::Exp(B_gen*(t0_gen-T_gen));
+
+      double r04_00_gen = EPS_gen*R_gen/(1+EPS_gen*R_gen);
+      double cm_f_gen = ( (1.-r04_00_gen) + (3.*r04_00_gen-1.)*cos_theta_cm_kp_gen*cos_theta_cm_kp_gen)*0.75;
+
+      //fill generated histograms 
+      h_el_theta_gen->Fill(mc_el_theta);
+      h_pr_theta_gen->Fill(mc_pr_theta);
+      h_kp_theta_gen->Fill(mc_kp_theta);
+      h_km_theta_gen->Fill(mc_km_theta);
+
+      h_q2_gen->Fill(q2_gen);
+      h_t_gen->Fill(t_gen);
+      h_xb_gen->Fill(xb_gen);
+      h_phi_gen->Fill(phi_gen);
+      h_nu_gen->Fill(nu_gen);
+      h_y_gen->Fill(y_gen);
+      h_gg_angle_gen->Fill(gg_angle_gen);
+     
+      h_q2_eX_phi_gen->Fill( mc_ele[0].Phi()*toDeg, q2_gen);
+      h_theta_eX_phi_gen->Fill( mc_ele[0].Phi()*toDeg, mc_ele[0].Theta()*toDeg );
+      
+
+      int q2_gen_bin = h_q2_bins_gen->FindBin(q2_gen);
+      int xb_gen_bin = h_xb_bins_gen->FindBin(xb_gen);
+      int t_gen_bin = h_t_bins_gen->FindBin(t_gen);
+
+      // fill cos theta cm kp histograms binned similiar to that in the PACS proposal
+      if( q2_gen_bin < q2_bins_gen && t_gen_bin < t_bins_gen && xb_gen_bin < xb_bins_gen ){
+	//std::cout << " q2 bin " << q2_gen_bin << " xb bin " << xb_gen_bin << " t bin " << t_gen_bin << " cos theta cm kp " << cos_theta_cm_kp_gen << std::endl;
+	//std::cout << " name  " << v_cos_theta_cm_kp_gen[q2_gen_bin][xb_gen_bin][t_gen_bin]->GetTitle() << std::endl;
+	v_cos_theta_cm_kp_gen[q2_gen_bin][xb_gen_bin][t_gen_bin]->Fill(cos_theta_cm_kp_gen);
+      }
+
+    }
 
       
 
   }
 
+
+  // check on the acceptance  
+  out->cd("Acceptance");
+
+  h_el_theta_accp->Divide(h_el_theta_rec, h_el_theta_gen, 1.0, 1.0);
+  h_pr_theta_accp->Divide(h_pr_theta_epX_rec, h_pr_theta_gen, 1.0, 1.0);
+  h_kp_theta_accp->Divide(h_kp_theta_ekpX_rec, h_kp_theta_gen, 1.0, 1.0);
+  h_km_theta_accp->Divide(h_km_theta_ekmX_rec, h_km_theta_gen, 1.0, 1.0);
+  
+  h_q2_eX_accp->Divide(h_q2_eX_rec, h_q2_gen,1.0, 1.0);
+  h_xb_eX_accp->Divide(h_xb_eX_rec, h_xb_gen,1.0, 1.0);
+  h_t_epX_accp->Divide(h_t_epX_rec, h_t_gen,1.0, 1.0);
+  h_t_epkp_accp->Divide(h_t_epkpX_rec,h_t_gen,1.0,1.0);
+  h_t_epkm_accp->Divide(h_t_epkmX_rec,h_t_gen,1.0,1.0);
+  h_t_epkpkm_accp->Divide(h_t_epkpkmX_rec,h_t_gen,1.0,1.0);
+  
+  h_q2_eX_phi_accp->Divide(h_q2_eX_phi_rec, h_q2_eX_phi_gen, 1.0, 1.0);
+  h_theta_eX_phi_accp->Divide(h_theta_eX_phi_rec,h_theta_eX_phi_gen, 1.0, 1.0);
+
+  h_q2_epkpkm_accp->Divide(h_q2_epkpkmX_rec,h_q2_gen,1.0, 1.0);
+
+  h_costheta_epkpkm_accp->Divide(h_costheta_epkpkm_rec,h_costheta_epkpkm_gen,1.0, 1.0);
+
+  h_theta_eX_phi_accp->Divide(h_theta_eX_phi_rec, h_theta_eX_phi_gen, 1.0, 1.0);
+  h_pr_theta_phi_accp->Divide(h_pr_theta_phi_rec, h_pr_theta_phi_gen, 1.0, 1.0);
+  h_kp_theta_phi_accp->Divide(h_kp_theta_phi_rec, h_kp_theta_phi_gen, 1.0, 1.0);
+  h_km_theta_phi_accp->Divide(h_km_theta_phi_rec, h_km_theta_phi_gen, 1.0, 1.0);
 
   out->Write();
   out->Close();

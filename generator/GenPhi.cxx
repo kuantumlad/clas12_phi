@@ -15,6 +15,12 @@
 #include <TSystem.h>
 #include <TStyle.h>
 
+
+// to compile then run do g++ GenPhi.cxx -o b.exe `root-config --cflags --glibs`
+// then ./b.exe
+
+
+
 using namespace std;
 
 const Double_t alpha_em = 1./137.036;
@@ -100,6 +106,9 @@ outlund.open("rename_phi_lund.txt");
 outlund.precision(4);
 outlund << right;
 for(int ie=0;ie<NeventsTot;){
+  
+  std::cout << " event " << ie << std::endl;
+
 	Long_t evtsPrint = (Long_t)TMath::FloorNint(ie/(NeventsTot/100));
 	evtsPrint = evtsPrint*TMath::FloorNint(NeventsTot/100);
 	if(ie==evtsPrint){
@@ -117,6 +126,7 @@ for(int ie=0;ie<NeventsTot;){
 	thisPhi = minphi+(maxphi-minphi)*ThisMCrandom->Uniform();
 	if(GenAcc(thisX,thisQ,thisT)){
 		Kinematics(thisX,thisQ,thisT,thisPhi*TMath::DegToRad());
+		std::cout << " right before dvmpx call : gen_phi_CMt " << gen_phi_CMt << std::endl;
 		phi_xsec = dvmpx(-thisT,thisX,thisQ,thisPhi,TMath::Cos(TMath::DegToRad()*gen_phi_CMt),EBeam);
 		if(phi_xsec>ThisMCrandom->Uniform()){
 			FillTree();
@@ -257,6 +267,10 @@ void Kinematics(Double_t x, Double_t q, Double_t t, Double_t phi){
  Pz = P*Theta;
  v4Kplus.SetXYZT(Px,Py,Pz,E);
  v4Kminus.SetXYZT(-Px,-Py,-Pz,E);
+
+ std::cout << "kaon plus components " << v4Kplus.Px() << " " << v4Kplus.Py() << " " << v4Kplus.Pz() << " " <<  std::endl;
+ std::cout << "kaon minus components " << v4Kminus.Px() << " " << v4Kminus.Py() << " " << v4Kminus.Pz() << " " <<  std::endl;
+
  v4Kplus.Boost(BETA);
  v4Kminus.Boost(BETA);
 
@@ -277,9 +291,24 @@ void Kinematics(Double_t x, Double_t q, Double_t t, Double_t phi){
  gen_phi_p = v4phi.P();
  gen_phi_t = TMath::RadToDeg()*v4phi.Theta();
  gen_phi_f = TMath::RadToDeg()*v4phi.Phi();
+ 
+ std::cout << " el momentum " << v4Elec.Px() << " " << v4Elec.Py() << " " << v4Elec.Pz() << " " << std::endl;
+ std::cout << " pr momentum " << v4Prot.Px() << " " << v4Prot.Py() << " " << v4Prot.Pz() << " " << std::endl;  
+ std::cout << " kp momentum " << v4Kplus.Px() << " " << v4Kplus.Py() << " " << v4Kplus.Pz() << " " <<  std::endl;   
+ std::cout << " km momentum " << v4Kminus.Px() << " " << v4Kminus.Py() << " " << v4Kminus.Pz() << std::endl;  
+
+ std::cout << " lines to copy to text file " << std::endl;
+ std::cout << 0 << v4Elec.Px() << " " << v4Elec.Py() << " " << v4Elec.Pz() << " " << v4Prot.Px() << " " << v4Prot.Py() << " " << v4Prot.Pz() << " " <<  v4Kplus.Px() << " " << v4Kplus.Py() << " " << v4Kplus.Pz() << " " << v4Kminus.Px() << " " << v4Kminus.Py() << " " << v4Kminus.Pz() << std::endl; 
+
  gen_gg_angle = TMath::RadToDeg() * (v4Kplus.Vect()).Angle(v4Kminus.Vect()) ;
  gen_phi_CMt = TMath::RadToDeg()*TMath::ACos(Theta);
  gen_phi_CMf = TMath::RadToDeg()*Phi;
+
+ std::cout << " Theta " << Theta << std::endl;
+ std::cout << " gen_gg_angle deg  " << gen_gg_angle << std::endl;
+ std::cout << " gen_phi_CMf deg " << gen_phi_CMf << std::endl;
+ std::cout << " gen_phi_CMt deg " <<  gen_phi_CMt << " acos "  << TMath::Cos(TMath::DegToRad()*gen_phi_CMt)  << std::endl;
+ std::cout << " beta boost : x " << BETA.Px() << " y " << BETA.Py() << " z " << BETA.Pz() << std::endl;
 
  gen_vx = 0;//0.04*ThisMCrandom->Gaus();
  gen_vy = 0;//0.04*ThisMCrandom->Gaus();
@@ -380,6 +409,10 @@ Double_t GetQ2_EpX(Double_t Xbj, Double_t Ep){
 //const Double_t phimass = 1.01946;
 //const Double_t Kmass = 0.49368;
 double dvmpx(double t, double xb, double Q2, double PHI_G, double cos_theta_H, double E){
+  std::cout << " in phi model " << std::endl;
+  std::cout << " t " << t << " xb " << xb << "  q2 " << Q2 << " phi g " << PHI_G << " cos theta H " << cos_theta_H << " E " << E << std::endl;
+
+
  //  dsigma/dQ2 dX dt dphi for ep-->ep phi
  if(xb<Q2/(2.0*ProtonMass*E)||xb>1.0)return 0.;
  double nu  = Q2/(2.*ProtonMass*xb);
@@ -421,6 +454,44 @@ double dvmpx(double t, double xb, double Q2, double PHI_G, double cos_theta_H, d
  double phi_modul = ( 1 + 0.5*TMath::Cos(PHI_G))/1.5;
 
  phi_modul=phi_modul*phi_modul;
+
+ std::cout << " Q2 " << Q2 << std::endl;
+ std::cout << " nu " << nu << std::endl;
+ std::cout << " y " << y << std::endl;
+ std::cout << " e1 " << e1 << std::endl;
+ std::cout << " EPS " << EPS << std::endl;
+ std::cout << " W2 " << W2 << std::endl;
+ std::cout << " W " << W << std::endl;
+ std::cout << " Wth " << Wth << std::endl;
+ std::cout << " cT " << cT << std::endl;
+ std::cout << " sigmT " << sigmT << std::endl;
+ std::cout << " R " << R << std::endl;
+ std::cout << " sigmK " << sigmL << std::endl;
+ std::cout << " tmax " << tmax << std::endl;
+ std::cout << " tmin " << tmin << std::endl;
+ std::cout << " T " << T << std::endl;
+ std::cout << " T0 " << T0 << std::endl;
+ std::cout << " B " << B << std::endl;
+ std::cout << " FF " << FF << std::endl;
+ std::cout << " r04_00" << r04_00 << std::endl;
+ std::cout << " CM_F " << CM_F << std::endl;
+ std::cout << " phi_mod" << phi_modul << std::endl;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
  double FLUX = alpha_em /(8*TMath::Pi()) * Q2/(ProtonMass*ProtonMass*E*E) * (1-xb)/(xb*xb*xb) * 1/(1-EPS);

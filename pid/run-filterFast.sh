@@ -13,5 +13,8 @@
 #Fall 2018:
 #5000, 5001, 5030, 5036, 5038, 5046, 5117
 
-javac -cp /w/hallb-scifs17exp/clas12/bclary/CLAS12/validation/validationBrandon/coat/coatjava-5b.7.6/lib/clas/coat-libs-5.7.6-SNAPSHOT.jar  -d . -sourcepath . filterFast.java 
-java -cp ".:/w/hallb-scifs17exp/clas12/bclary/CLAS12/validation/validationBrandon/coat/coatjava-5b.7.6/lib/clas/coat-libs-5.7.6-SNAPSHOT.jar" filterFast $1 $2 $3 $4
+#javac -cp /w/hallb-scifs17exp/clas12/bclary/CLAS12/validation/validationBrandon/coat/coatjava-5b.7.6/lib/clas/coat-libs-5.7.6-SNAPSHOT.jar  -d . -sourcepath . filterFast.java #
+#java -cp ".:/w/hallb-scifs17exp/clas12/bclary/CLAS12/validation/validationBrandon/coat/coatjava-5b.7.6/lib/clas/coat-libs-5.7.6-SNAPSHOT.jar" filterFast $1 $2 $3 $4
+
+javac -cp /group/clas12/packages/coatjava/6b.3.0/lib/clas/coat-libs-6.3.0-SNAPSHOT.jar -d . -sourcepath . filterFast.java 
+java -cp ".:/group/clas12/packages/coatjava/6b.3.0/lib/clas/coat-libs-6.3.0-SNAPSHOT.jar" filterFast $1 $2 $3 $4
