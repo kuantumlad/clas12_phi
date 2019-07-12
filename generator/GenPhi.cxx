@@ -455,37 +455,27 @@ double dvmpx(double t, double xb, double Q2, double PHI_G, double cos_theta_H, d
 
  phi_modul=phi_modul*phi_modul;
 
- std::cout << " Q2 " << Q2 << std::endl;
- std::cout << " nu " << nu << std::endl;
- std::cout << " y " << y << std::endl;
- std::cout << " e1 " << e1 << std::endl;
- std::cout << " EPS " << EPS << std::endl;
- std::cout << " W2 " << W2 << std::endl;
- std::cout << " W " << W << std::endl;
- std::cout << " Wth " << Wth << std::endl;
- std::cout << " cT " << cT << std::endl;
- std::cout << " sigmT " << sigmT << std::endl;
- std::cout << " R " << R << std::endl;
- std::cout << " sigmK " << sigmL << std::endl;
- std::cout << " tmax " << tmax << std::endl;
- std::cout << " tmin " << tmin << std::endl;
- std::cout << " T " << T << std::endl;
- std::cout << " T0 " << T0 << std::endl;
- std::cout << " B " << B << std::endl;
- std::cout << " FF " << FF << std::endl;
- std::cout << " r04_00" << r04_00 << std::endl;
- std::cout << " CM_F " << CM_F << std::endl;
- std::cout << " phi_mod" << phi_modul << std::endl;
-
-
-
-
-
-
-
-
-
-
+ // std::cout << " Q2 " << Q2 << std::endl;
+ //std::cout << " nu " << nu << std::endl;
+ //std::cout << " y " << y << std::endl;
+ //std::cout << " e1 " << e1 << std::endl;
+ //std::cout << " EPS " << EPS << std::endl;
+ //std::cout << " W2 " << W2 << std::endl;
+ //std::cout << " W " << W << std::endl;
+ //std::cout << " Wth " << Wth << std::endl;
+ //std::cout << " cT " << cT << std::endl;
+ //std::cout << " sigmT " << sigmT << std::endl;
+ //std::cout << " R " << R << std::endl;
+ //std::cout << " sigmK " << sigmL << std::endl;
+ //std::cout << " tmax " << tmax << std::endl;
+ //std::cout << " tmin " << tmin << std::endl;
+ //std::cout << " T " << T << std::endl;
+ //std::cout << " T0 " << T0 << std::endl;
+ //std::cout << " B " << B << std::endl;
+ //std::cout << " FF " << FF << std::endl;
+ //std::cout << " r04_00" << r04_00 << std::endl;
+ //std::cout << " CM_F " << CM_F << std::endl;
+ //std::cout << " phi_mod" << phi_modul << std::endl;
 
 
 

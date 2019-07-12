@@ -40,11 +40,14 @@ int phaseSpacePlotter(const char* input, int run, const char* field_config, cons
   if(Ebeam < 3)  p_min = 0.5;
 
 
-  TF1 *qcut_clas6 = new TF1("qcut","2*0.938*x*(5.887 - (2*0.938*5.954*x)/(2*0.938*x + 4*5.887*sin((47.0/2.0)*(3.14159/180.0))*sin((47.0/2.0)*(3.14159/180.0))))",0.072,0.624);
+  TF1 *qcut_clas6 = new TF1("qcut","2*0.938*x*(5.887 - (2*0.938*5.954*x)/(2*0.938*x + 4*5.887*sin((47.0/2.0)*(3.14159/180.0))*sin((47.0/2.0)*(3.14159/180.0))))",0.16,0.624);
   TF1 *wcut_clas6 = new TF1("wcut","(0.938*0.938 - 2*2)*( x/(x-1) )",0.18,0.625);
 
   TF1 *qcut_clas12 = new TF1("qcut","2*0.938*x*(10.5 - (2*0.938*10.5*x)/(2*0.938*x + 4*10.5*sin((47.0/2.0)*(3.14159/180.0))*sin((47.0/2.0)*(3.14159/180.0))))",0.072,0.824);
+  TF1 *qcut_clas12_low = new TF1("qcut_low","2*0.938*x*(10.5 - (2*0.938*10.5*x)/(2*0.938*x + 4*10.5*sin((10.0/2.0)*(3.14159/180.0))*sin((10.0/2.0)*(3.14159/180.0))))",0.16,0.43);
   TF1 *wcut_clas12 = new TF1("wcut","(0.938*0.938 - 2*2)*( x/(x-1) )",0.18,0.825);
+
+  TLine *q1_cut = new TLine(0.0,1.0,1.0,1.0);
   
 
   //TCanvas *c1 = new TCanvas("c1","c1",900,900);
@@ -62,11 +65,16 @@ int phaseSpacePlotter(const char* input, int run, const char* field_config, cons
   wcut_clas6->SetLineColor(kMagenta);
   qcut_clas12->SetLineColor(kRed);
   wcut_clas12->SetLineColor(kRed);
+  qcut_clas12_low->SetLineColor(kRed);
+  q1_cut->SetLineWidth(2);
+  q1_cut->SetLineColor(kRed);
   h_q2x_gen->Draw("colz");
   qcut_clas6->Draw("same");
   wcut_clas6->Draw("same");
   qcut_clas12->Draw("same");
   wcut_clas12->Draw("same");
+  q1_cut->Draw("same");
+  qcut_clas12_low->Draw("same");
   c1a->SaveAs(Form("h_q2x_gen_%s_%s.pdf",field_config, dataType));
 
 

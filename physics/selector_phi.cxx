@@ -857,6 +857,32 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
   TH1D *h_kp_theta_accp;
   TH1D *h_km_theta_accp;
 
+  std::vector<TH1D*> h_pr_theta_pbins_rec;
+  std::vector<TH1D*> h_pr_theta_pbins_gen;
+  std::vector<TH1D*> h_pr_theta_pbins_accp;
+
+  std::vector<TH1D*> h_kp_theta_pbins_rec;
+  std::vector<TH1D*> h_kp_theta_pbins_gen;
+  std::vector<TH1D*> h_kp_theta_pbins_accp;
+
+  std::vector<TH1D*> h_km_theta_pbins_rec;
+  std::vector<TH1D*> h_km_theta_pbins_gen;
+  std::vector<TH1D*> h_km_theta_pbins_accp;
+
+  for( int pb = 0; pb < 50; pb++ ){
+    h_pr_theta_bpins_gen.push_back( new TH1D(Form("h_pr_theta_pb%d_gen",pb),Form("h_pr_theta_pb%d_gen",pb), 50, 0.0, 80.0) );
+    h_kp_theta_bpins_gen.push_back( new TH1D(Form("h_kp_theta_pb%d_gen",pb),Form("h_kp_theta_pb%d_gen",pb), 50, 0.0, 80.0) );
+    h_km_theta_bpins_gen.push_back( new TH1D(Form("h_km_theta_pb%d_gen",pb),Form("h_km_theta_pb%d_gen",pb), 50, 0.0, 80.0) );
+
+    h_pr_theta_bpins_rec.push_back( new TH1D(Form("h_pr_theta_pb%d_rec",pb),Form("h_pr_theta_pb%d_rec",pb), 50, 0.0, 80.0) );
+    h_kp_theta_bpins_rec.push_back( new TH1D(Form("h_kp_theta_pb%d_rec",pb),Form("h_kp_theta_pb%d_rec",pb), 50, 0.0, 80.0) );
+    h_km_theta_bpins_rec.push_back( new TH1D(Form("h_km_theta_pb%d_rec",pb),Form("h_km_theta_pb%d_rec",pb), 50, 0.0, 80.0) );
+
+    h_pr_theta_bpins_accp.push_back( new TH1D(Form("h_pr_theta_pb%d_accp",pb),Form("h_pr_theta_pb%d_accp",pb), 50, 0.0, 80.0) );
+    h_kp_theta_bpins_accp.push_back( new TH1D(Form("h_kp_theta_pb%d_accp",pb),Form("h_kp_theta_pb%d_accp",pb), 50, 0.0, 80.0) );
+    h_km_theta_bpins_accp.push_back( new TH1D(Form("h_km_theta_pb%d_accp",pb),Form("h_km_theta_pb%d_accp",pb), 50, 0.0, 80.0) );
+  }
+
   TH1D *h_el_theta_epX_rec;
   TH1D *h_el_theta_epkpX_rec;
   TH1D *h_el_theta_epkmX_rec;
@@ -971,6 +997,16 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
   TH1D *h_xb_epkpkm_accp;
   TH1D *h_t_epkpkm_accp;
   
+  TH1D *h_pr_p_bins;
+  TH1D *h_kp_p_bins;
+  TH1D *h_km_p_bins;
+
+  *h_pr_p_bins = new TH1D("h_pr_p_bins","h_pr_p_bins",50,0.0,5.0);
+  *h_kp_p_bins = new TH1D("h_kp_p_bins","h_kp_p_bins",50,0.0,5.0);
+  *h_km_p_bins = new TH1D("h_km_p_bins","h_km_p_bins",50,0.0,5.0);
+
+  
+
   h_el_theta_gen = new TH1D("h_el_theta_gen","h_el_theta_gen",50, 0.0, 80.0);
   h_pr_theta_gen  = new TH1D("h_pr_theta_gen","h_pr_theta_gen",50, 0.0, 80.0);
   h_kp_theta_gen  = new TH1D("h_kp_theta_gen","h_kp_theta_gen",50, 0.0, 80.0);
@@ -1038,6 +1074,27 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
 
   out->mkdir("resolution");
   out->cd("resolution");
+
+  TH2D *h2_el_res_p_sect;
+  TH2D *h2_pr_res_p_sect;
+  TH2D *h2_kp_res_p_sect;
+  TH2D *h2_km_res_p_sect;
+
+  TH2D *h2_el_res_theta_sect;
+  TH2D *h2_pr_res_theta_sect;
+  TH2D *h2_kp_res_theta_sect;
+  TH2D *h2_km_res_theta_sect;
+ 
+  
+  h2_el_res_p_sect = new TH2D("h2_el_res_p_sect","h2_el_res_p_sect",50, 0.0, Ebeam, 100, -0.5, 0.5);
+  h2_pr_res_p_sect = new TH2D("h2_pr_res_p_sect","h2_pr_res_p_sect",50, 0.0, 5.0, 100, -0.5, 0.5);
+  h2_kp_res_p_sect = new TH2D("h2_kp_res_p_sect","h2_kp_res_p_sect",50, 0.0, 6.0, 100, -0.5, 0.5);
+  h2_km_res_p_sect = new TH2D("h2_km_res_p_sect","h2_km_res_p_sect",50, 0.0, 6.0, 100, -0.5, 0.5);
+
+  h2_el_res_theta_sect = new TH2D("h2_el_res_theta_sect","h2_el_res_theta_sect",50, 0.0, Ebeam, 100, -0.5, 0.5);
+  h2_pr_res_theta_sect = new TH2D("h2_pr_res_theta_sect","h2_pr_res_theta_sect",50, 0.0, 5.0, 100, -0.5, 0.5);
+  h2_kp_res_theta_sect = new TH2D("h2_kp_res_theta_sect","h2_kp_res_theta_sect",50, 0.0, 6.0, 100, -0.5, 0.5);
+  h2_km_res_theta_sect = new TH2D("h2_km_res_theta_sect","h2_km_res_theta_sect",50, 0.0, 6.0, 100, -0.5, 0.5);
 
   std::vector< TProfile*> prof_el_p_sect;
   std::vector< TProfile*> prof_el_theta_sect;
@@ -1369,8 +1426,12 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
       hist_all_proton_theta_vs_phi->Fill(lv_pr_max.Phi()*toDeg, lv_pr_max.Theta()*toDeg);
 
       //histos for acceptance
+      // need electron present otherwise detected proton isnt reliable
       if( ele_count > min_el ){
 	h_pr_theta_phi_rec->Fill(lv_pr_max.Phi()*toDeg, lv_pr_max.Theta()*toDeg);
+	// histograms for accpetance of hadrons for different momentum ranges
+ 	int pr_p_bin_rec = h_pr_p_bins->FindBin(lv_pr_max.P());
+	h_pr_theta_bpins_rec[pr_p_bin_rec]->Fill(lv_pr_max.Theta()*toDeg);
       }
     }
 
@@ -1385,6 +1446,9 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
       //histos for acceptance 
       if( ele_count > min_el ){
 	h_kp_theta_phi_rec->Fill(lv_kp_max.Phi()*toDeg, lv_kp_max.Theta()*toDeg);
+	// histograms for accpetance of hadrons for different momentum ranges
+ 	int kp_p_bin_rec = h_kp_p_bins->FindBin(lv_kp_max.P());
+	h_kp_theta_bpins_rec[kp_p_bin_rec]->Fill(lv_kp_max.Theta()*toDeg);
       }
     }
 
@@ -1399,6 +1463,9 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
       //histos for acceptance
       if( ele_count > min_el ){
 	h_km_theta_phi_rec->Fill(lv_km_max.Phi()*toDeg, lv_km_max.Theta()*toDeg);
+	// histograms for accpetance of hadrons for different momentum ranges
+ 	int km_p_bin_rec = h_km_p_bins->FindBin(lv_km_max.P());
+	h_km_theta_bpins_rec[km_p_bin_rec]->Fill(lv_km_max.Theta()*toDeg);
       }
     }
 
@@ -1471,9 +1538,12 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
       h_eX->Fill(lv_eX.M());      
 
       if(analysis_sim == "SIM"){
-	prof_el_p_sect[0]->Fill( mc_ele[0].P(), lv_el_max.P()/mc_ele[0].P());
-	prof_el_theta_sect[0]->Fill( mc_ele[0].Theta()*toDeg, lv_el_max.Theta()/mc_ele[0].Theta());
-	prof_el_phi_sect[0]->Fill( mc_ele[0].Phi()*toDeg, lv_el_max.Phi()/mc_ele[0].Phi());
+	prof_el_p_sect[0]->Fill( mc_ele[0].P(), (lv_el_max.P()-mc_ele[0].P())/mc_ele[0].P());
+	prof_el_theta_sect[0]->Fill( mc_ele[0].Theta()*toDeg, (lv_el_max.Theta()-mc_ele[0].Theta())/mc_ele[0].Theta());
+	prof_el_phi_sect[0]->Fill( mc_ele[0].Phi()*toDeg, (lv_el_max.Phi()-mc_ele[0].Phi())/mc_ele[0].Phi());
+	h2_el_res_p_sect->Fill(mc_ele[0].P(),(lv_el_max.P()-mc_ele[0].P())/mc_ele[0].P());
+	h2_el_res_theta_sect->Fill(mc_ele[0].Theta(),(lv_el_max.Theta()-mc_ele[0].Theta())/mc_ele[0].Theta());
+
       }
     }
 
@@ -1847,6 +1917,10 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
   	
 
     if( data_type == "SIM"){
+      double mc_pr_p = mc_prot[0].P();
+      double mc_kp_p = mc_kp[0].P();
+      double mc_km_p = mc_km[0].P();
+
       double mc_el_theta = mc_ele[0].Theta() * 180.0/Pival;
       double mc_pr_theta = mc_prot[0].Theta() * 180.0/Pival;
       double mc_kp_theta = mc_kp[0].Theta() * 180.0/Pival;
@@ -1869,14 +1943,20 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
       h_kp_phitheta_gen->Fill( mc_kp_phi, mc_kp_theta);
       h_km_phitheta_gen->Fill( mc_km_phi, mc_km_theta);
 
-
       // below histo specifically for acceptance
       h_theta_eX_phi_gen->Fill( mc_el_phi, mc_el_theta);
       h_pr_theta_phi_gen->Fill( mc_pr_phi, mc_pr_theta);
       h_kp_theta_phi_gen->Fill( mc_kp_phi, mc_kp_theta);
       h_km_theta_phi_gen->Fill( mc_km_phi, mc_km_theta);
 
-
+      // histograms for accpetance of hadrons for different momentum ranges
+      int pr_p_bin_gen = h_pr_p_bins->FindBin(mc_pr_p);
+      int pr_kp_bin_gen = h_kp_p_bins->FindBin(mc_kp_p);
+      int pr_km_bin_gen = h_km_p_bins->FindBin(mc_pr_p);
+      
+      h_pr_theta_bpins_gen[pr_p_bin_gen]->Fill(mc_pr_theta);
+      h_kp_theta_bpins_gen[kp_p_bin_gen]->Fill(mc_kp_theta);
+      h_km_theta_bpins_gen[km_p_bin_gen]->Fill(mc_km_theta);
  
     // phi angle in trento convention
       TVector3 v3L_gen = (lv_ebeam.Vect()).Cross(mc_ele[0].Vect());
@@ -2033,6 +2113,12 @@ int selector_phi( const char* inFile, const char* outputfile, int run, std::stri
   h_kp_theta_phi_accp->Divide(h_kp_theta_phi_rec, h_kp_theta_phi_gen, 1.0, 1.0);
   h_km_theta_phi_accp->Divide(h_km_theta_phi_rec, h_km_theta_phi_gen, 1.0, 1.0);
 
+  for( int pb = 0; pb < 50; pb++ ){
+    h_pr_theta_bpins_accp[pb]->Divide(h_pr_theta_bpins_rec[pb],h_pr_theta_bpins_gen[pb], 1.0, 1.0);
+    h_kp_theta_bpins_accp[pb]->Divide(h_kp_theta_bpins_rec[pb],h_kp_theta_bpins_gen[pb], 1.0, 1.0);
+    h_km_theta_bpins_accp[pb]->Divide(h_km_theta_bpins_rec[pb],h_km_theta_bpins_gen[pb], 1.0, 1.0);
+  }
+  
   out->Write();
   out->Close();
 
