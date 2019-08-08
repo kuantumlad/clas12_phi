@@ -1480,9 +1480,9 @@ Int_t filter_clas12( Char_t *inFile, Char_t *outputfile, int run)
    anaTree->SetBranchAddress("REC_Track_detector", &vTRK_detector);  
    anaTree->SetBranchAddress("REC_Track_sector", &vTRK_sector);   
 
-   anaTree->SetBranchAddress("REC_Traj_pindex", &vTraj_pindex);                                                                                                                                          
-   anaTree->SetBranchAddress("REC_Traj_detector_vec", &vTraj_detID);
-   anaTree->SetBranchAddress("REC_Traj_layer_vec", &vTraj_layerID);
+   anaTree->SetBranchAddress("REC_Traj_pindex", &vTraj_pindex);
+   anaTree->SetBranchAddress("REC_Traj_detector", &vTraj_detID);
+   anaTree->SetBranchAddress("REC_Traj_layer", &vTraj_layerID);
    anaTree->SetBranchAddress("REC_Traj_x", &vTraj_x);
    anaTree->SetBranchAddress("REC_Traj_y", &vTraj_y);
    anaTree->SetBranchAddress("REC_Traj_z", &vTraj_z); 
